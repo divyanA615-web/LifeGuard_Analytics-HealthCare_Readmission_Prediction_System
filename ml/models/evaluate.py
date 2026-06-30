@@ -27,7 +27,18 @@ def _load_onnx_session(model_path: Path) -> rt.InferenceSession:
 
 def _predict_onnx(sess: rt.InferenceSession, X: np.ndarray) -> np.ndarray:
     input_name = sess.get_inputs()[0].name
-    return sess.run(None, {input_name: X.astype(np.float32)})[0][:, 1]
+    results = sess.run(None, {input_name: X.astype(np.float32)})
+    # The XGBoost ONNX exports produce multiple [label, proba] outputs.
+    # The last one is always the probability tensor.
+    for out in reversed(results):
+        arr = np.asarray(out)
+        if arr.ndim == 2 and arr.shape[1] == 2:
+            return arr[:, 1]
+        if arr.ndim == 2 and arr.shape[1] == 1:
+            return arr[:, 0]
+        if arr.ndim == 1:
+            return arr
+    raise RuntimeError("Could not interpret ONNX outputs")
 
 
 def _pos_class_rates(y_true: np.ndarray, y_proba: np.ndarray) -> tuple[float, float]:
@@ -44,7 +55,10 @@ def evaluate(
     model_path: Path = Path("ml/models/xgboost_v1/model.onnx"),
 ) -> dict:
     feature_columns = json.loads((features_dir / "feature_columns.json").read_text())
-    test = pd.read_parquet(splits_dir / "test_X.parquet")
+    test_path = splits_dir / "test.parquet"
+    test = pd.read_parquet(test_path)
+    if "readmitted_30d" not in test.columns and "target" in test.columns:
+        test["readmitted_30d"] = test["target"]
     y_true = test["readmitted_30d"].values
     X = test[feature_columns].astype(np.float32).values
 

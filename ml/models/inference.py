@@ -30,11 +30,14 @@ class FeatureValue:
 
 def load_session(model_path: str | os.PathLike = DEFAULT_MODEL_DIR / "model.onnx") -> rt.InferenceSession:
     """Create and configure an ONNX inference session."""
+    p = Path(model_path)
+    if p.is_dir():
+        p = p / "model.onnx"
     options = rt.SessionOptions()
     options.inter_op_num_threads = int(os.environ.get("INFERENCE_THREADS", "2"))
     options.intra_op_num_threads = int(os.environ.get("INFERENCE_THREADS", "2"))
     options.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-    return rt.InferenceSession(Path(model_path).as_posix(), options)
+    return rt.InferenceSession(p.as_posix(), options)
 
 
 class InferenceEngine:
@@ -45,7 +48,7 @@ class InferenceEngine:
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
         self.expected_features = self.session.get_inputs()[0].shape[1] or None
-        logger.info("ONNX model loaded: %s", model_path)
+        logger.info("ONNX model loaded")
 
     def validate(self, features: Sequence[float]) -> None:
         arr = np.asarray(features, dtype=np.float32)
@@ -57,18 +60,33 @@ class InferenceEngine:
             )
 
     def predict(self, features: Sequence[float]) -> np.ndarray:
-        """Return the probability array (n=2) for a single sample."""
+        """Return the probability array for a single sample."""
         self.validate(features)
         arr = np.asarray(features, dtype=np.float32).reshape(1, -1)
-        outs = self.session.run([self.output_name], {self.input_name: arr})
-        return outs[0][0]
+        results = self.session.run([self.output_name], {self.input_name: arr})
+        result = np.asarray(results[0])
+        if result.ndim == 2 and result.shape[-1] == 2:
+            return result[0]
+        if result.ndim == 2 and result.shape[-1] == 1:
+            return np.array([1.0 - float(result[0, 0]), float(result[0, 0])])
+        if result.ndim == 1:
+            return np.array([1.0 - float(result[0]), float(result[0])])
+        return result[0]
 
     def predict_proba_positive(self, features: Sequence[float]) -> float:
         result = self.predict(features)
-        return float(result[1] if len(result) == 2 else result[-1])
+        return float(result[-1])
 
     def predict_batch(self, matrix: np.ndarray) -> np.ndarray:
         """Return positive-class probabilities for a 2D batch."""
         matrix = np.ascontiguousarray(matrix, dtype=np.float32)
-        outs = self.session.run([self.output_name], {self.input_name: matrix})
-        return np.asarray(outs[0])[:, 1]
+        results = self.session.run([self.output_name], {self.input_name: matrix})
+        result = np.asarray(results[0])
+        if result.ndim == 2:
+            if result.shape[-1] == 2:
+                return result[:, 1]
+            if result.shape[-1] == 1:
+                return result[:, 0]
+        if result.ndim == 1:
+            return result
+        return result[:, -1]

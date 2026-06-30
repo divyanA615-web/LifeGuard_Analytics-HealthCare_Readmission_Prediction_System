@@ -10,9 +10,16 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ml import PATIENT_ID_COLUMN, RANDOM_SEED, TARGET_COLUMN, TRAIN_VAL_TEST_SPLIT  # noqa: E402
+from ml import (  # noqa: E402
+    CATEGORICAL_FEATURES,
+    NUMERIC_FEATURES,
+    PATIENT_ID_COLUMN,
+    RANDOM_SEED,
+    TARGET_COLUMN,
+    TRAIN_VAL_TEST_SPLIT,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -32,6 +39,14 @@ def split(
     source = processed_dir / "diabetes_readmission.parquet"
     df = pd.read_parquet(source)
     logger.info("Loaded %d rows from %s", len(df), source)
+
+    keep_cols = [PATIENT_ID_COLUMN, TARGET_COLUMN, "age_midpoint"] + NUMERIC_FEATURES + CATEGORICAL_FEATURES
+    df = df[[c for c in keep_cols if c in df.columns]].copy()
+    # Fill missing categorical columns with 0 so column ordering matches
+    for col in CATEGORICAL_FEATURES:
+        if col not in df.columns:
+            df[col] = 0
+    df["age"] = df["age_midpoint"] if "age_midpoint" in df.columns else 0.0
 
     train_df, rest = train_test_split(
         df,

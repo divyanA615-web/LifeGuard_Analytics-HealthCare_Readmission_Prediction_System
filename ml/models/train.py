@@ -32,7 +32,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ml import TARGET_COLUMN  # noqa: E402
 
@@ -48,16 +48,32 @@ except Exception:  # pragma: no cover - mlflow is optional for dev
 
 try:
     from onnxmltools import convert_xgboost
-    from skl2onnx.common.data_types import FloatTensorType
+    from onnxmltools.convert.common.data_types import FloatTensorType
     from skl2onnx import to_onnx as _skl_to_onnx  # noqa
 except Exception:  # pragma: no cover
     convert_xgboost = None
 
 
 def _load(path: Path) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    train = pd.read_parquet(path / "train_X.parquet")
-    val = pd.read_parquet(path / "val_X.parquet")
-    test = pd.read_parquet(path / "test_X.parquet")
+    train = pd.read_parquet(path / "train.parquet")
+    val = pd.read_parquet(path / "val.parquet")
+    test = pd.read_parquet(path / "test.parquet")
+    return train, val, test
+
+
+def _encode_payer_code(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame):
+    """Hash-encode the categorical payer_code so it can be passed to XGBoost."""
+    import hashlib
+
+    def to_int(series: pd.Series) -> pd.Series:
+        return series.fillna("").map(
+            lambda v: int(hashlib.sha256(v.encode()).hexdigest()[:8], 16)
+        )
+
+    enc = to_int(train["payer_code"].astype(str))
+    train["payer_code"] = enc
+    val["payer_code"] = to_int(val["payer_code"].astype(str))
+    test["payer_code"] = to_int(test["payer_code"].astype(str))
     return train, val, test
 
 
@@ -83,9 +99,10 @@ def train(
 
     feature_columns = json.loads(columns_path.read_text())
     train, val, test = _load(splits_dir)
-    train_X = train[feature_columns]
-    val_X = val[feature_columns]
-    test_X = test[feature_columns]
+    train, val, test = _encode_payer_code(train, val, test)
+    train_X = train[feature_columns].astype(float)
+    val_X = val[feature_columns].astype(float)
+    test_X = test[feature_columns].astype(float)
 
     y_train = train[TARGET_COLUMN].astype(int).values
     y_val = val[TARGET_COLUMN].astype(int).values
@@ -104,7 +121,6 @@ def train(
         tree_method="hist",
         n_jobs=-1,
         random_state=42,
-        use_label_encoder=False,
     )
 
     if mlflow:
@@ -135,10 +151,38 @@ def train(
     booster.save_model(model_dir.as_posix() + "/model.json")
 
     if convert_xgboost is not None:
-        initial_types = [("float_input", FloatTensorType([None, len(feature_columns)]))]
-        onnx_model = convert_xgboost(booster, initial_types=initial_types)
+        # ONNX requires generic feature names f0..fN — train on ndarray
+        anon_booster = xgb.XGBClassifier(
+            n_estimators=params["n_estimators"],
+            learning_rate=params["learning_rate"],
+            max_depth=params["max_depth"],
+            subsample=params["subsample"],
+            colsample_bytree=params["colsample_bytree"],
+            reg_lambda=params["reg_lambda"],
+            min_child_weight=params["min_child_weight"],
+            eval_metric="aucpr",
+            tree_method="hist",
+            n_jobs=-1,
+            random_state=42,
+        )
+        anon_booster.fit(
+            train_X.to_numpy() if hasattr(train_X, "to_numpy") else train_X,
+            y_train,
+            eval_set=[(val_X.to_numpy() if hasattr(val_X, "to_numpy") else val_X, y_val)],
+            verbose=False,
+        )
+        n_features = len(feature_columns)
+        initial_types = [
+            ("float_input", FloatTensorType([None, n_features]))
+        ]
+        onnx_model = convert_xgboost(anon_booster, initial_types=initial_types)
         onnx_path = model_dir / "model.onnx"
-        onnx_model.save_model(onnx_path.as_posix())
+        with open(onnx_path, "wb") as fh:
+            if hasattr(onnx_model, "serialize"):
+                fh.write(onnx_model.SerializeToString() if hasattr(onnx_model, "SerializeToString") else onnx_model.serialize())
+            else:
+                from onnx import onnx_ml_pb2  # type: ignore
+                fh.write(onnx_ml_pb2.ModelProto.SerializeToString(onnx_model) if hasattr(onnx_ml_pb2.ModelProto, "SerializeToString") else bytes(onnx_model))
         logger.info("Saved ONNX model to %s", onnx_path)
     else:
         logger.warning("onnx export skipped – install skl2onnx + onnxmltools")

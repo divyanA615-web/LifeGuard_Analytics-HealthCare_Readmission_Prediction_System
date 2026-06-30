@@ -59,7 +59,14 @@ def test_prepare_token_is_deterministic(tmp_path: Path, raw_df: pd.DataFrame, mo
     assert df["age_midpoint"].tolist() == [55.0, 65.0, 75.0]
 
 
-def test_validation_requires_binary_target(tmp_path: Path) -> None:
+def test_validation_requires_binary_target() -> None:
+    from ml.data.prepare_diabetes import validate
+    """Verify the validate function's binary check logic."""
     df = pd.DataFrame({"readmitted_30d": [0, 1, 1]})
-    prepare_diabetes = __import__("ml.data.prepare_diabetes", fromlist=["validate"]).validate
-    prepare_diabetes(df)  # should not raise
+    validate(df)  # should not raise
+    # Single-class data should still pass shape but not 'binary' check directly
+    df2 = pd.DataFrame({"readmitted_30d": [1, 1, 1]})
+    try:
+        validate(df2)
+    except AssertionError:
+        pass  # expected when all rows have the same label

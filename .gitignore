@@ -1,39 +1,139 @@
-# Python
+# ============================================================
+# LifeGuard Readmission Prediction — Git Ignore
+# ============================================================
+
+# ---------- Python ----------
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtualenvs
 .venv/
+venv/
+env/
+.python-version
+
+# Environment variables (CRITICAL — never commit secrets)
 .env
 .env.*
+.env.local
+.env.development
+.env.production
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# MLflow / DVC / data versions
 ml/mlruns/
-ml/data/raw/data/*.csv
+ml/**.dvc/
+ml/.dvcignore
+
+# Raw datasets (large, may contain PHI per licensing terms)
+ml/data/raw/
+ml/data/raw/**/*.csv
+ml/data/raw/data/
+ml/data/raw/incoming/
+
+# Processed/splits/features (regenerates from raw)
 ml/data/processed/*.parquet
+ml/data/processed/*.feather
+ml/data/processed/*.csv
+ml/data/processed/plots/
+ml/data/processed/audit_chain*.ndjson
 !ml/data/processed/.gitkeep
 ml/data/splits/*.parquet
 ml/data/features/*.pkl
+ml/data/features/*.json
+
+# Trained artefacts (regenerates from training)
 ml/models/xgboost_v1/
+ml/models/**/*.json
+ml/models/**/*.onnx
+ml/models/**/*.pkl
+ml/models/**/*.joblib
+
+# Training/eval metrics (regenerated)
 ml/metrics/*.json
 
-# Frontend
-node_modules/
-dist/
-.env.local
-.vite/
-
-# Terraform
+# ---------- Terraform ----------
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfstate.lock.info
 *.tfvars
 !*.tfvars.example
 .terragrunt-cache/
+terraform.tfplan
 
-# IDE
+# ---------- Frontend ----------
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/vite.config.ts.local
+
+# ---------- CI/CD ----------
+.github/workflows/.secrets/
+
+# ---------- Google Cloud / API ----------
+**/credentials.json
+**/access_token
+**/.gcp/
+**/service-account*.json
+**/gcp-service-account*.json
+**/gke-gcloud-auth-plugin.json
+
+# ---------- Backend ----------
+backend/.env
+backend/.env.*
+backend/**/*.sqlite3
+backend/local.db
+backend/local_dev.db
+backend/logs/
+backend/*.log
+
+# ---------- Audit / Security ----------
+docs/audit_chain*.ndjson
+**/audit_chain_test.ndjson
+*.har
+*.env
+
+# ---------- IDE ----------
 .vscode/
+.vscode-test/
 .idea/
+*.swp
+*.swo
 .DS_Store
+Thumbs.db
+*.project
+*.classpath
+*.settings/
 
-# Misc
+# ---------- Logs ----------
 *.log
+*.log.*
+logs/
+robots*.txt
+
+# ---------- Coverage / test output ----------
 coverage/
 .coverage
+.coverage.*
+htmlcov/
+junit*.xml
+test-results/
+.nyc_output/
+.tox/
+.pytest_cache/
+
+# ---------- Misc ----------
+*.tmp
+*.bak
+*.old
+*.orig
+package-lock.json.bak

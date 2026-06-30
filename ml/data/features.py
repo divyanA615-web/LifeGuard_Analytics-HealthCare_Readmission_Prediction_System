@@ -19,7 +19,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ml import CATEGORICAL_FEATURES, NUMERIC_FEATURES, PATIENT_ID_COLUMN  # noqa: E402
 

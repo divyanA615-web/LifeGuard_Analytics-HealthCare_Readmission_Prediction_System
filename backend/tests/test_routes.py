@@ -5,9 +5,14 @@ from __future__ import annotations
 import os
 import sys
 
-from fastapi.testclient import TestClient
+# Disable middleware during tests
+os.environ["ENABLE_HTTPS_REDIRECT"] = "0"
+os.environ["ENABLE_TRUSTED_HOST"] = "0"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from fastapi.testclient import TestClient
 
 from app.main import app  # noqa
 

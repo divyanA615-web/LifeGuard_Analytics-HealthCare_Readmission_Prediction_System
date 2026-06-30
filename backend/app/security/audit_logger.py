@@ -97,20 +97,31 @@ class AuditLogger:
 
 
 def verify_chain(path: Path = LOCAL_AUDIT_PATH) -> bool:
-    """Verify that all linked hashes form a valid chain."""
+    """Verify that all linked hashes form a valid chain.
+
+    Returns False on any tamper attempt, malformed JSON, or missing
+    fields, rather than raising – this lets callers use it as a one-line
+    readiness probe.
+    """
     if not path.exists():
         return True
     prev = "0" * 64
-    for line in path.open():
-        rec = json.loads(line)
-        canonical = json.dumps(
-            {k: v for k, v in rec.items() if k != "chain_hash"},
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        ).encode("utf-8")
-        expected = hashlib.sha256(canonical).hexdigest()
-        if rec.get("prev_hash") != prev or rec.get("chain_hash") != expected:
-            return False
-        prev = expected
+    try:
+        for line in path.open():
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                return False
+            canonical = json.dumps(
+                {k: v for k, v in rec.items() if k != "chain_hash"},
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8")
+            expected = hashlib.sha256(canonical).hexdigest()
+            if rec.get("prev_hash") != prev or rec.get("chain_hash") != expected:
+                return False
+            prev = expected
+    except OSError:
+        return False
     return True
