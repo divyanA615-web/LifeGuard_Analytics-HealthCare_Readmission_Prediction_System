@@ -1,0 +1,56 @@
+stages:
+  prepare:
+    desc: "Clean & transform raw dataset into model-ready Parquet"
+    cmd: "python ml/data/prepare_diabetes.py --raw-dir ml/data/raw --processed-dir ml/data/processed"
+    outs:
+      - "ml/data/processed/diabetes_readmission.parquet"
+
+  split:
+    desc: "Split into train/val/test (stratified, deterministic)"
+    cmd: "python ml/data/split.py --processed-dir ml/data/processed --output-dir ml/data/splits"
+    deps:
+      - "ml/data/processed/diabetes_readmission.parquet"
+    outs:
+      - "ml/data/splits/train.parquet"
+      - "ml/data/splits/val.parquet"
+      - "ml/data/splits/test.parquet"
+
+  features:
+    desc: "Build feature pipeline + scale encoders (Feast-compatible)"
+    cmd: "python ml/data/features.py --splits ml/data/splits --output ml/data/features"
+    deps:
+      - "ml/data/splits/train.parquet"
+    outs:
+      - "ml/data/features/scaler.pkl"
+      - "ml/data/features/feature_columns.json"
+
+  train:
+    desc: "Train XGBoost classifier (.json + .onnx)"
+    cmd: "python ml/models/train.py --features ml/data/features --splits ml/data/splits --output ml/models"
+    deps:
+      - "ml/data/splits/train.parquet"
+      - "ml/data/splits/val.parquet"
+      - "ml/data/features/feature_columns.json"
+    params:
+      - "max_depth"
+      - "learning_rate"
+      - "n_estimators"
+      - "subsample"
+      - "colsample_bytree"
+    metrics:
+      - "ml/metrics/training.json":
+          cache: false
+    artifacts:
+      - "ml/models/xgboost_v1/model.json"
+      - "ml/models/xgboost_v1/model.onnx"
+      - "ml/models/xgboost_v1/shap_explainer.pkl"
+
+  evaluate:
+    desc: "Compute AUC, calibration, fairness metrics on test set"
+    cmd: "python ml/models/evaluate.py --features ml/data/features --splits ml/data/splits"
+    deps:
+      - "ml/data/splits/test.parquet"
+      - "ml/models/xgboost_v1/model.onnx"
+    metrics:
+      - "ml/metrics/evaluation.json":
+          cache: false

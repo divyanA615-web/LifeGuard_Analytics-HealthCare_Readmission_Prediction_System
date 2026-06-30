@@ -1,0 +1,8 @@
+max_depth: 6
+learning_rate: 0.05
+n_estimators: 600
+subsample: 0.85
+colsample_bytree: 0.85
+reg_lambda: 1.0
+min_child_weight: 5
+calibration_method: platt

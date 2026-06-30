@@ -1,0 +1,98 @@
+"""GLUE between the FastAPI route handlers and the ML pipeline."""
+
+from __future__ import annotations
+
+import logging
+import os
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Sequence
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+MODEL_DIR = Path(os.environ.get("MODEL_ARTIFACT_PATH", "ml/models/xgboost_v1"))
+FEATURE_COLUMNS_PATH = MODEL_DIR.parent.parent / "data" / "features" / "feature_columns.json"
+
+
+@dataclass(slots=True)
+class PredictionResult:
+    risk_proba: float
+    risk_label: str
+    explanation: list[dict]
+    latency_ms: float
+    model_version: str
+
+
+class MLPipeline:
+    """Lazily loaded pipeline used by the FastAPI route layer."""
+
+    def __init__(self):
+        import joblib
+
+        from ml.models.inference import InferenceEngine
+        from ml.models.shap_explainer import ShapExplainer
+
+        self._engine: InferenceEngine | None = None
+        self._shap: ShapExplainer | None = None
+        self._feature_columns: list[str] | None = None
+        self._scaler = None
+
+    @property
+    def engine(self) -> object:
+        if self._engine is None:
+            from ml.models.inference import InferenceEngine
+            self._engine = InferenceEngine(MODEL_DIR / "model.onnx")
+        return self._engine
+
+    @property
+    def shap(self) -> object:
+        if self._shap is None:
+            from ml.models.shap_explainer import ShapExplainer
+            self._shap = ShapExplainer(MODEL_DIR / "shap_explainer.pkl")
+        return self._shap
+
+    @property
+    def feature_columns(self) -> list[str]:
+        if self._feature_columns is None:
+            if FEATURE_COLUMNS_PATH.exists():
+                import json
+
+                self._feature_columns = json.loads(FEATURE_COLUMNS_PATH.read_text())
+            else:
+                self._feature_columns = []
+        return self._feature_columns
+
+    def predict(self, features: Sequence[float]) -> PredictionResult:
+        if not self.feature_columns:
+            raise RuntimeError(
+                "Feature columns not loaded – make sure training has been run."
+            )
+        if len(features) != len(self.feature_columns):
+            raise ValueError(
+                f"Feature length mismatch: {len(features)} vs expected {len(self.feature_columns)}"
+            )
+
+        start = time.perf_counter()
+        risk_proba = self.engine.predict_proba_positive(features)
+        latency_ms = (time.perf_counter() - start) * 1000
+
+        explanation = self.shap.explain(features, self.feature_columns)
+        top = self.shap.top_features(explanation, top_k=5)
+
+        if risk_proba < 0.33:
+            risk_label = "LOW"
+        elif risk_proba < 0.66:
+            risk_label = "MEDIUM"
+        else:
+            risk_label = "HIGH"
+
+        return PredictionResult(
+            risk_proba=risk_proba,
+            risk_label=risk_label,
+            explanation=top,
+            latency_ms=latency_ms,
+            model_version="xgboost_v1",
+        )

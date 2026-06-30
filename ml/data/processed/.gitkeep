@@ -1,0 +1,1 @@
+# Empty data directories prevent git from tracking large files; the pipeline writes here

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.env.*
+ml/mlruns/
+ml/data/raw/data/*.csv
+ml/data/processed/*.parquet
+!ml/data/processed/.gitkeep
+ml/data/splits/*.parquet
+ml/data/features/*.pkl
+ml/models/xgboost_v1/
+ml/metrics/*.json
+
+# Frontend
+node_modules/
+dist/
+.env.local
+.vite/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+.terragrunt-cache/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Misc
+*.log
+coverage/
+.coverage
