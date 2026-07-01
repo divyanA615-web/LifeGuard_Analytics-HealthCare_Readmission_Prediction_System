@@ -34,6 +34,8 @@ COPY --chown=appuser:appuser --from=builder /home/appuser/.local /home/appuser/.
 COPY --chown=appuser:appuser app ./app
 COPY --chown=appuser:appuser alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini ./alembic.ini
+COPY --chown=appuser:appuser docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 USER appuser
 
@@ -41,4 +43,5 @@ EXPOSE 8080
 
 HEALTHCHECK CMD python -c "import urllib.request, sys; sys.exit(urllib.request.urlopen('http://localhost:8080/v1/health').status != 200)"
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--log-level", "info"]

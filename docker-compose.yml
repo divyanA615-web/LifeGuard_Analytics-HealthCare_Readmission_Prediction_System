@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: lifeguard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lifeguard
+      POSTGRES_PASSWORD: lifeguard
+      POSTGRES_DB: lifeguard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lifeguard-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: dev
+      DEPLOY_ENV: dev
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+psycopg2://lifeguard:lifeguard@db:5432/lifeguard
+      LOCAL_KEK: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      MODEL_ARTIFACT_PATH: /app/ml/models/xgboost_v1
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8080
+      ENABLE_HTTPS_REDIRECT: "0"
+      ENABLE_TRUSTED_HOST: "0"
+      ALLOWED_HOSTS: "*"
+      MIGRATE_ON_START: "1"
+      DEV_AUTH_TOKEN: dev-token-123
+    volumes:
+      - ./ml/models/xgboost_v1:/app/ml/models/xgboost_v1:ro
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lifeguard-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BACKEND: http://backend:8080
+    ports:
+      - "3000:8080"
+
+volumes:
+  postgres_data:
