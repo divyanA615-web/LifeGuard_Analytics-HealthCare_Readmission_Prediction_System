@@ -1,5 +1,18 @@
 # LifeGuard Analytics — Healthcare Readmission Prediction
 
+> ⚠️ **No PHI in this repository.** This codebase ships with **synthetic** and
+> **publicly-de-identified** data only — currently the UCI Diabetes
+> 130-US Hospitals benchmark (CC0/CC-BY, already de-identified per
+> 45 CFR §164.514 Safe Harbor) and procedurally-generated Synthea-style
+> records. **Real patient identifiers, credentials, or production
+> data of any kind must never be committed to any branch.**
+>
+> Production deployment of real patient data requires a Business Associate
+> Agreement (BAA) with a hospital Covered Entity plus downstream BAAs
+> with the cloud and AI providers. See `SECURITY.md` for the responsible
+> disclosure policy and `docs/security/incident_response.md` for the
+> HIPAA-readiness checklist.
+
 Production-grade full-stack ML system that predicts 30-day hospital readmission risk
 in real time. The model itself is an XGBoost classifier, exported to ONNX for
 low-latency CPU inference in Cloud Run. The frontend is React + Vite. ML features
