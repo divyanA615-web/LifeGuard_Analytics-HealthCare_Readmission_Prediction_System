@@ -35,12 +35,12 @@ services:
       DATABASE_URL: postgresql+psycopg2://lifeguard:lifeguard@db:5432/lifeguard
       LOCAL_KEK: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       MODEL_ARTIFACT_PATH: /app/ml/models/xgboost_v1
-      CORS_ORIGINS: http://localhost:3000,http://localhost:8080
+      CORS_ORIGINS: http://localhost:8081,http://localhost:8080
       ENABLE_HTTPS_REDIRECT: "0"
       ENABLE_TRUSTED_HOST: "0"
       ALLOWED_HOSTS: "*"
       MIGRATE_ON_START: "1"
-      DEV_AUTH_TOKEN: dev-token-123
+      DEV_AUTH_TOKEN: ${DEV_AUTH_TOKEN:-dev-token-123}
     volumes:
       - ./ml/models/xgboost_v1:/app/ml/models/xgboost_v1:ro
     ports:
@@ -57,7 +57,7 @@ services:
     environment:
       VITE_API_BACKEND: http://backend:8080
     ports:
-      - "3000:8080"
+      - "8081:8080"
 
 volumes:
   postgres_data:

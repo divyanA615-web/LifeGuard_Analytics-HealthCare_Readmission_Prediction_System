@@ -8,12 +8,21 @@ import {
   Paper,
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
+import { api } from "@/hooks/useApi";
 
 export function Login(): React.ReactElement {
-  const handleLogin = () => {
-    const endpoint = import.meta.env.VITE_API_BASE ?? "/v1";
-    const next = encodeURIComponent(window.location.origin + "/patients/new");
-    window.location.href = `${endpoint}/__auth/login?next=${next}`;
+  const handleLogin = async () => {
+    try {
+      const response = await api.post("/auth/login");
+      const token = response.data?.token;
+      if (!token) {
+        throw new Error("Login failed – no token returned");
+      }
+      localStorage.setItem("lifeguard_auth_token", token);
+      window.location.href = "/patients/new";
+    } catch (error) {
+      alert("Login failed: " + (error as Error).message);
+    }
   };
 
   return (

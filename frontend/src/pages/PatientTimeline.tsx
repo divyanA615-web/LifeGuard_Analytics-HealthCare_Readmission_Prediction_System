@@ -48,7 +48,7 @@ export function PatientTimeline(): React.ReactElement {
                   </TableCell>
                 </TableRow>
               )}
-              {data.predictions.map((p: Record<string, unknown>) => (
+              {data.predictions.map((p: any) => (
                 <TableRow key={String(p.id)}>
                   <TableCell>{String(p.created_at)}</TableCell>
                   <TableCell>{String(p.risk_label)}</TableCell>

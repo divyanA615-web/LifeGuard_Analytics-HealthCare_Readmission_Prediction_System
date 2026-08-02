@@ -14,7 +14,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import get_settings
-from app.routes import admin, feedback, health, patients, predict
+from app.routes import admin, auth, feedback, health, patients, predict
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -99,6 +99,7 @@ app.include_router(feedback.router, prefix="/v1", tags=["feedback"])
 app.include_router(patients.router, prefix="/v1", tags=["patients"])
 app.include_router(admin.router, prefix="/v1", tags=["admin"])
 app.include_router(health.router, prefix="/v1", tags=["health"])
+app.include_router(auth.router, prefix="/v1", tags=["auth"])
 
 
 @app.get("/")

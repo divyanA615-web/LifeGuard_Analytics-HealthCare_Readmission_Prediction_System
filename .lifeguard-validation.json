@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-08-02T23:24:43.457169",
+  "checks": {
+    "docker_daemon": {
+      "passed": false,
+      "message": "failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.\n"
+    },
+    "model_bundle": {
+      "passed": true,
+      "message": "model files found: ['model.json', 'model.onnx', 'shap_explainer.pkl']"
+    },
+    "db": {
+      "passed": false,
+      "message": "cannot connect to localhost:5432"
+    },
+    "backend": {
+      "passed": false,
+      "message": "cannot connect to localhost:8080"
+    },
+    "frontend": {
+      "passed": false,
+      "message": "cannot connect to localhost:8081"
+    },
+    "api_health": {
+      "passed": false,
+      "message": "unexpected response code=-1"
+    },
+    "frontend_spa": {
+      "passed": false,
+      "message": "unexpected HTML response code=-1"
+    }
+  },
+  "failed": 6,
+  "passed": false
+}

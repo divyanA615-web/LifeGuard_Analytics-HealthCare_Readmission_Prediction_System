@@ -1,0 +1,31 @@
+# Render backend deployment manifest (Postgres + Web Service + Persistent Disk)
+services:
+  - type: web
+    name: lifeguard-backend
+    env: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    autoDeploy: false
+    healthCheckPath: /v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: postgres
+          name: lifeguard-db
+          property: hostport
+      - key: ENVIRONMENT
+        value: prod
+      - key: DEV_AUTH_TOKEN
+        sync: false
+        value: <generate-secure-token-here>
+
+databases:
+  - name: lifeguard-db
+    databaseName: lifeguard
+    user: lifeguard_backend
+    plan: free
+
+volumes:
+  - name: model-artifacts
+    mountPath: /app/ml/models

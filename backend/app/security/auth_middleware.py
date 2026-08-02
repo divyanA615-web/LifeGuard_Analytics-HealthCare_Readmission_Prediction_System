@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import jwt
-from fastapi import Header, HTTPException, status
+from fastapi import Cookie, Header, HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class Principal:
 async def verify_request(
     x_iap_jwt_assertion: Optional[str] = Header(default=None),
     authorization: Optional[str] = Header(default=None),
+    lifeguard_auth_token: Optional[str] = Cookie(default=None),
 ) -> Principal:
     """Extract a Principal from Cloud IAP headers or local-dev token."""
     if x_iap_jwt_assertion:
@@ -55,6 +56,9 @@ async def verify_request(
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ", 1)[1]
         return _verify_token(token)
+
+    if lifeguard_auth_token:
+        return _verify_token(lifeguard_auth_token)
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

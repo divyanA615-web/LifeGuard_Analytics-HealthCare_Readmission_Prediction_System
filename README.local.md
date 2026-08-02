@@ -30,13 +30,13 @@ This document explains how to run the LifeGuard Readmission Prediction system en
    ```powershell
    .\scripts\local\run.ps1
    ```
-   This builds and starts three containers:
-   - PostgreSQL (`db`) on host port **5432**
-   - FastAPI backend (`backend`) on host port **8080**
-   - Nginx frontend (`frontend`) on host port **3000**
+    This builds and starts three containers:
+    - PostgreSQL (`db`) on host port **5432**
+    - FastAPI backend (`backend`) on host port **8080**
+    - Nginx frontend (`frontend`) on host port **8081**
 
 4. **Verify**:
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost:8081
    - Backend OpenAPI docs: http://localhost:8080/docs
    - Health check: http://localhost:8080/v1/health (should return `{"status":"ok",...}`)
    - Database is reachable on `localhost:5432` with user `lifeguard` / password `lifeguard`.
@@ -53,7 +53,7 @@ This document explains how to run the LifeGuard Readmission Prediction system en
 ```
 ┌─────────────────┐     ┌──────────────────┐
 │   localhost     │     │    localhost     │
-│   port 3000     │────▶│    port 8080     │
+│   port 8081     │────▶│    port 8080     │
 └────────┬────────┘     └────────▲─────────┘
          │                      │
          ▼                      │
