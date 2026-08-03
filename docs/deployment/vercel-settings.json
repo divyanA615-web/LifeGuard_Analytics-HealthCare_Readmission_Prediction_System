@@ -1,0 +1,37 @@
+# Vercel Project Configuration — LifeGuard Readmission Predictor
+
+This JSON mirrors the required Vercel project settings visually
+setup for reproducibility across demo environments.
+
+{
+  "projectSettings": {
+    "framework": "vite",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "installCommand": "npm install",
+    "devCommand": null,
+    "fields": {
+      "environment": [
+        {
+          "key": "VITE_API_BASE",
+          "value": "https://lifeguard-backend.onrender.com/v1",
+          "target": ["preview", "staging"]
+        },
+        {
+          "key": "VITE_API_BASE",
+          "value": "",
+          "target": ["production"] // placeholder until you publish, then restore absolute URL
+        }
+      ],
+      "functions": {
+        "regions": ["bom1"]
+      }
+    }
+  },
+  "triggerMatching": {
+    "branches": ["main"],
+    "paths": ["frontend/**"]
+  },
+  "notes":
+    "Do not reference raw tokens here. All backend secrets resolved via Render service variables, only shared URLs are exposed at build time."
+}

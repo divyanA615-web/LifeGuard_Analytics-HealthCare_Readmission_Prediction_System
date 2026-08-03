@@ -1,31 +1,51 @@
-# Render backend deployment manifest (Postgres + Web Service + Persistent Disk)
+# Render deployment manifest for LifeGuard Backend
+# Requirements to run this successfully:
+# 1. Create via Render Dashboard → New Web Service → Docker Registry → ghcr.io path
+# 2. Provide DATABASE_URL from linked Render Postgres instance
+# 3. Provide DEV_AUTH_TOKEN in Render → Settings → Environment
+# 4. Health check path must be globally reachable
+
 services:
+  # Render Web service for the FastAPI Backend
   - type: web
     name: lifeguard-backend
-    env: docker
-    plan: standard
-    region: oregon
+    runtime: docker
+    # Path to the repo-side Dockerfile (safer than image tag reference)
     dockerfilePath: ./backend/Dockerfile
-    autoDeploy: false
-    healthCheckPath: /v1/health
-    envVars:
-      - key: DATABASE_URL
-        fromService:
-          type: postgres
-          name: lifeguard-db
-          property: hostport
-      - key: ENVIRONMENT
-        value: prod
-      - key: DEV_AUTH_TOKEN
-        sync: false
-        value: <generate-secure-token-here>
+    # Mount persistent volume holding the ML models, build artefacts, and audit data
+    volumes:
+      - name: model-artifacts
+        mountPath: /app/ml
+        type: persistent # Maintains training state across deploys
 
+    # Scale & availability settings visible in Render console
+    plan: standard # Free plan spins down on inactivity; use standard for demo stability
+    numInstances: 1
+    maxInstances: 2
+    autoDeploy: true
+
+    # HTTP health check config (matches app health route)
+    healthCheckPath: /v1/health
+    pollIntervalSeconds: 30
+    initialDelaySeconds: 15
+    timeoutSeconds: 10
+    healthyThreshold: 2
+    unhealthyThreshold: 5
+
+    # Secure environment exposes only via Render SecretStore
+    secrets:
+      - env: DATABASE_URL
+        fromDatabase:
+          name: lifeguard-db
+          property: connectionString
+      - env: DEV_AUTH_TOKEN
+        # DO NOT put in render.yaml — use Render secret store in UI
+        # Render rejects plaintext secrets in YAML; this field here is for linting only
+
+# Dedicated Postgres instance (minimal tier)
 databases:
   - name: lifeguard-db
     databaseName: lifeguard
-    user: lifeguard_backend
+    user: lifeguard_app
     plan: free
-
-volumes:
-  - name: model-artifacts
-    mountPath: /app/ml/models
+    ipRange: 0.0.0.0/0 # allow outbound routing from the web service tier

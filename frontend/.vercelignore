@@ -1,0 +1,38 @@
+# Vercel deployment ignores
+# Keeps repository clean from development cruft
+
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+dist
+*.log
+.env.local
+.env.development.local
+.env.production.local
+.env.staging.local
+
+# Ignore Python artifacts for pure frontend build context
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.ml
+ml/
+backend/
+docs/
+
+# IDE files
+.vscode
+.idea
+*.sublime-*
+
+# Test snapshots (to avoid shipping test data to prod)
+*.test.ts.snap
+
+# Backup files
+*.bak
+
+# OS artefacts
+Thumbs.db
+.DS_Store
