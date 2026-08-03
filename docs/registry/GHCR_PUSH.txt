@@ -1,0 +1,12 @@
+# GHCR Push Commands (dry reference)
+# Requires `docker login ghcr.io` with valid PAT having packages:write scope.
+
+docker push ghcr.io/divyana615/lifeguard-backend:latest
+docker push ghcr.io/divyana615/lifeguard-backend:v0.3.1-alpha
+docker push ghcr.io/divyana615/lifeguard-frontend:latest
+docker push ghcr.io/divyana615/lifeguard-frontend:v0.3.1-alpha
+
+# Or trigger via push to main branch:
+# git push origin main && gh workflow run registry-sync.yml
+
+echo "Login required first: PAT (classic) toke with scopes repo, read:packages, write:packages"

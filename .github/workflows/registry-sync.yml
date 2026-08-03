@@ -11,8 +11,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/lifeguard-backend
-  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/lifeguard-frontend
+  IMAGE_BACKEND: ghcr.io/divyana615/lifeguard-backend
+  IMAGE_FRONTEND: ghcr.io/divyana615/lifeguard-frontend
 
 jobs:
   build-push:
