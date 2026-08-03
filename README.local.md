@@ -48,6 +48,19 @@ This document explains how to run the LifeGuard Readmission Prediction system en
 
 ---
 
+## Container Registry
+
+GitHub Actions workflow `registry-sync.yml` auto-builds and pushes backend and frontend images to `ghcr.io/<owner>/lifeguard-backend:<sha>` on every `main` push of relevant code. Pull fresh tags after each merge for reliability.
+
+```bash
+docker pull ghcr.io/<owner>/lifeguard-backend:latest
+docker compose pull backend && docker compose up -d backend
+```
+
+> **TIP**: Replace `<owner>` with `divyanA615-web` when publishing. Use `docker login ghcr.io` before pulls.
+
+---
+
 ## Architecture
 
 ```
