@@ -14,7 +14,7 @@ fi
 # Optionally run alembic migrations if MIGRATE_ON_START=1
 if [ "$MIGRATE_ON_START" = "1" ]; then
   echo "Running database migrations..."
-  alemic upgrade head || true
+  alembic upgrade head || true
 fi
 
 # Dump effective config for debug

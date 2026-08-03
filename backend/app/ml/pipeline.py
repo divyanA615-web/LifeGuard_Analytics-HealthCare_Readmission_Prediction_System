@@ -30,28 +30,28 @@ class MLPipeline:
     """Lazily loaded pipeline used by the FastAPI route layer."""
 
     def __init__(self):
-        import joblib
-
-        from ml.models.inference import InferenceEngine
-        from ml.models.shap_explainer import ShapExplainer
-
-        self._engine: InferenceEngine | None = None
-        self._shap: ShapExplainer | None = None
+        self._engine = None
+        self._shap = None
+        self._shap_failed = False
         self._feature_columns: list[str] | None = None
         self._scaler = None
 
     @property
-    def engine(self) -> object:
+    def engine(self):
         if self._engine is None:
             from ml.models.inference import InferenceEngine
             self._engine = InferenceEngine(MODEL_DIR / "model.onnx")
         return self._engine
 
     @property
-    def shap(self) -> object:
-        if self._shap is None:
-            from ml.models.shap_explainer import ShapExplainer
-            self._shap = ShapExplainer(MODEL_DIR / "shap_explainer.pkl")
+    def shap(self):
+        if self._shap is None and not self._shap_failed:
+            try:
+                from ml.models.shap_explainer import ShapExplainer
+                self._shap = ShapExplainer(MODEL_DIR / "shap_explainer.pkl")
+            except Exception as exc:  # shap/xgboost unpickle can fail
+                logger.error("SHAP explainer unavailable: %s", exc)
+                self._shap_failed = True
         return self._shap
 
     @property
@@ -79,8 +79,11 @@ class MLPipeline:
         risk_proba = self.engine.predict_proba_positive(features)
         latency_ms = (time.perf_counter() - start) * 1000
 
-        explanation = self.shap.explain(features, self.feature_columns)
-        top = self.shap.top_features(explanation, top_k=5)
+        if self.shap is not None:
+            explanation = self.shap.explain(features, self.feature_columns)
+            top = self.shap.top_features(explanation, top_k=5)
+        else:
+            top = []
 
         if risk_proba < 0.33:
             risk_label = "LOW"

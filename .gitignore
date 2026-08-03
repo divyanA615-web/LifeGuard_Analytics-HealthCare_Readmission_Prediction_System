@@ -117,6 +117,11 @@ Thumbs.db
 # ---------- Logs ----------
 *.log
 *.log.*
+
+# Runtime validation artifacts
+.lifeguard-validation.json
+frontend/tsconfig.tsbuildinfo
+
 logs/
 robots*.txt
 

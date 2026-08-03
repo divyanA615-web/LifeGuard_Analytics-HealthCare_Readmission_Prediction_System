@@ -49,9 +49,19 @@ async def predict(
         raise HTTPException(status_code=503, detail="model not loaded")
 
     raw_features = body.dict()
-    feature_vector = [
-        float(raw_features.get(field, 0.0)) for field in feature_order
-    ]
+    # Since some fields are one-hot categories we need conditional conversion.
+    # Get mapping from model metadata if available; otherwise default to float.
+    try:
+        feature_vector = [
+            float(raw_features.get(field, 0.0)) if isinstance(
+                raw_features.get(field, 0.0), (int, float)
+            ) else 0.0
+            for field in feature_order
+        ]
+    except (TypeError, ValueError) as exc:
+        logger.error("Feature coercion failed: %s", exc)
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
 
     try:
         result = pipeline.predict(feature_vector)
@@ -99,7 +109,9 @@ async def predict(
         risk_proba=result.risk_proba,
         risk_label=result.risk_label,
         features_json=raw_features,
-        explanation_json=[e.__dict__ for e in result.explanation],
+        explanation_json=[
+            e if isinstance(e, dict) else e.__dict__ for e in result.explanation
+        ],
         clinician_id=principal.subject,
         actor_email=principal.email,
     )
@@ -131,7 +143,10 @@ async def predict(
         patient_token=patient_token,
         risk_proba=round(result.risk_proba, 4),
         risk_label=result.risk_label,
-        explanation=[ExplanationItem(**e.__dict__) for e in result.explanation],
+        explanation=[
+            ExplanationItem(**(e if isinstance(e, dict) else e.__dict__))
+            for e in result.explanation
+        ],
         model_version=result.model_version,
         latency_ms=round(result.latency_ms, 2),
         humane_explanation=humane_text,

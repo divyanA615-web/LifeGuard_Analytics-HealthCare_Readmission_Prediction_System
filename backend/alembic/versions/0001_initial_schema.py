@@ -1,58 +1,91 @@
--- Initial schema migration applied automatically by Alembic.
+"""Initial schema: patients, predictions, feedback, audit chain.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS pgvector;
+Revision ID: 0001
+Revises:
+Create Date: 2026-06-26
+"""
+from alembic import op
+import sqlalchemy as sa
 
-CREATE TABLE patients (
-    id BIGSERIAL PRIMARY KEY,
-    patient_token VARCHAR(64) UNIQUE NOT NULL,
-    ssn_enc TEXT,
-    mrn_enc TEXT,
-    name_enc TEXT,
-    dob_enc TEXT,
-    age_band VARCHAR(8),
-    gender VARCHAR(8),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
 
-CREATE TABLE predictions (
-    id BIGSERIAL PRIMARY KEY,
-    patient_token VARCHAR(64) NOT NULL,
-    model_version VARCHAR(32) NOT NULL,
-    risk_proba FLOAT NOT NULL,
-    risk_label VARCHAR(16) NOT NULL,
-    features_json JSONB NOT NULL,
-    explanation_json JSONB NOT NULL,
-    clinician_id VARCHAR(64) NOT NULL,
-    actor_email VARCHAR(120),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    feedback_at TIMESTAMP
-);
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
 
-CREATE INDEX ix_predictions_patient ON predictions (patient_token);
-CREATE INDEX ix_predictions_created_at ON predictions (created_at DESC);
 
-CREATE TABLE feedback (
-    id BIGSERIAL PRIMARY KEY,
-    prediction_id BIGINT NOT NULL,
-    clinician_id VARCHAR(64) NOT NULL,
-    actual_readmitted_30d BOOLEAN NOT NULL,
-    clinician_notes_enc TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
+def upgrade() -> None:
+    bind = op.get_bind()
+    # Extensions (only enable pgcrypto which ships with alpine postgres)
+    try:
+        bind.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
+    except Exception as exc:  # noqa: BLE001
+        print(f"[alembic] extension skipped: pgcrypto -> {exc}")
 
-CREATE TABLE audit_entries (
-    id BIGSERIAL PRIMARY KEY,
-    actor VARCHAR(120) NOT NULL,
-    action VARCHAR(64) NOT NULL,
-    target VARCHAR(120) NOT NULL,
-    payload_json JSONB NOT NULL,
-    prev_hash VARCHAR(64) NOT NULL,
-    chain_hash VARCHAR(64) NOT NULL,
-    occurred_at TIMESTAMP NOT NULL
-);
+    # pgvector deliberately skipped — not needed for baseline feature tracking.
 
-CREATE INDEX ix_audit_actor ON audit_entries (actor);
-CREATE INDEX ix_audit_chain ON audit_entries (chain_hash);
+    # Patients
+    op.create_table(
+        'patients',
+        sa.Column('id', sa.BigInteger(), primary_key=True),
+        sa.Column('patient_token', sa.String(64), nullable=False, unique=True),
+        sa.Column('ssn_enc', sa.Text()),
+        sa.Column('mrn_enc', sa.Text()),
+        sa.Column('name_enc', sa.Text()),
+        sa.Column('dob_enc', sa.Text()),
+        sa.Column('age_band', sa.String(8), nullable=False),
+        sa.Column('gender', sa.String(8), nullable=False),
+        sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    )
 
-CREATE UNIQUE INDEX ix_audit_chain_unique ON audit_entries (chain_hash);
+    # Predictions
+    op.create_table(
+        'predictions',
+        sa.Column('id', sa.BigInteger(), primary_key=True),
+        sa.Column('patient_token', sa.String(64), nullable=False),
+        sa.Column('model_version', sa.String(32), nullable=False),
+        sa.Column('risk_proba', sa.Numeric(10, 6), nullable=False),
+        sa.Column('risk_label', sa.String(16), nullable=False),
+        sa.Column('features_json', sa.JSON(), nullable=False),
+        sa.Column('explanation_json', sa.JSON(), nullable=False),
+        sa.Column('clinician_id', sa.String(64), nullable=False),
+        sa.Column('actor_email', sa.String(120)),
+        sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('feedback_at', sa.TIMESTAMP()),
+    )
+    op.create_index('ix_predictions_patient', 'predictions', ['patient_token'])
+    op.create_index('ix_predictions_created_at', 'predictions', [sa.text('created_at DESC')])
+
+    # Feedback
+    op.create_table(
+        'feedback',
+        sa.Column('id', sa.BigInteger(), primary_key=True),
+        sa.Column('prediction_id', sa.BigInteger(), sa.ForeignKey('predictions.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('clinician_id', sa.String(64), nullable=False),
+        sa.Column('actual_readmitted_30d', sa.Boolean(), nullable=False),
+        sa.Column('clinician_notes_enc', sa.Text()),
+        sa.Column('submitted_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    )
+
+    # Audit entries (hash-chained)
+    op.create_table(
+        'audit_entries',
+        sa.Column('id', sa.BigInteger(), primary_key=True),
+        sa.Column('actor', sa.String(120), nullable=False),
+        sa.Column('action', sa.String(64), nullable=False),
+        sa.Column('target', sa.String(120), nullable=False),
+        sa.Column('payload_json', sa.JSON(), nullable=False),
+        sa.Column('prev_hash', sa.String(64), nullable=False),
+        sa.Column('chain_hash', sa.String(64), nullable=False),
+        sa.Column('occurred_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+    )
+    op.create_index('ix_audit_actor', 'audit_entries', ['actor'])
+    op.create_index('ix_audit_chain', 'audit_entries', ['chain_hash'])
+    op.create_index('ix_audit_chain_unique', 'audit_entries', ['chain_hash'], unique=True)
+
+
+def downgrade() -> None:
+    op.drop_table('feedback')
+    op.drop_table('predictions')
+    op.drop_table('patients')
+    op.drop_table('audit_entries')
