@@ -17,10 +17,9 @@ if [ "$MIGRATE_ON_START" = "1" ]; then
   alembic upgrade head || true
 fi
 
-# Dump effective config for debug
+# Dump effective config for debug (avoid leaking secrets)
 echo "Starting backend with:"
 echo "  ENVIRONMENT=${ENVIRONMENT:-dev}"
 echo "  DEPLOY_ENV=${DEPLOY_ENV:-dev}"
-echo "  DATABASE_URL=${DATABASE_URL:-<unset>}"
 
 exec "$@"

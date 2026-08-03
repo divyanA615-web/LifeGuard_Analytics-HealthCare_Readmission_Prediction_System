@@ -88,7 +88,7 @@ This document explains how to run the LifeGuard Readmission Prediction system en
 All environment variables are defined in `docker-compose.yml`. Most are fixed for local dev:
 
 - `DATABASE_URL` points to the `db` service.
-- `DEV_AUTH_TOKEN` is set to `dev-token-123`. Include header `Authorization: Bearer dev-token-123` for API calls.
+- `DEV_AUTH_TOKEN` is set via environment; the compose default is `local-dev-only-token`. Include header `Authorization: Bearer <your-dev-token>` for API calls. See `.env.example.backend` for token structure.
 - `LOCAL_KEK` provides a deterministic AES key for PHI encryption fallback (not used in dev unless PHI fields are present).
 - `CORS_ORIGINS` allows the frontend origin.
 
@@ -109,7 +109,7 @@ curl http://localhost:8080/v1/health
 ### Predict (requires auth)
 ```bash
 curl -X POST http://localhost:8080/v1/predict \
-  -H "Authorization: Bearer dev-token-123" \
+  -H "Authorization: Bearer $DEV_AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "age": 70,

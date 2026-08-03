@@ -25,18 +25,24 @@ async def login(response: Response):
     settings = get_settings()
     if settings.environment not in ("dev", "development"):
         raise HTTPException(status_code=404, detail="Not Found")
-    token = os.getenv("DEV_AUTH_TOKEN", "dev-token-123")
+
+    token = os.getenv("DEV_AUTH_TOKEN")
+    if not token:
+        raise HTTPException(status_code=503, detail="auth backend unreachable")
     json_payload = {
         "token": token,
         "expires_in": 3600,
         "type": "dev"
     }
     # HttpOnly cookie ensures XSS attacks cannot steal the token for API calls
+    secure_cookie = os.getenv("ENABLE_HTTPS_REDIRECT", "0") == "1"
     response.set_cookie(
         key="lifeguard_auth_token",
         value=token,
         httponly=True,
         samesite="lax",
-        max_age=3600
+        max_age=3600,
+        path="/",
+        secure=secure_cookie,
     )
     return json_payload

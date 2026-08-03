@@ -31,12 +31,13 @@ services:
       DATABASE_URL: postgresql+psycopg2://lifeguard:lifeguard@db:5432/lifeguard
       LOCAL_KEK: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       MODEL_ARTIFACT_PATH: /app/ml/models/xgboost_v1
-      CORS_ORIGINS: http://localhost:8081,http://localhost:8080
+      CORS_ORIGINS: http://localhost:8081,http://localhost:5173
       ENABLE_HTTPS_REDIRECT: "0"
-      ENABLE_TRUSTED_HOST: "0"
-      ALLOWED_HOSTS: "*"
+      ENABLE_TRUSTED_HOST: "1"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend,frontend"
       MIGRATE_ON_START: "1"
-      DEV_AUTH_TOKEN: ${DEV_AUTH_TOKEN:-dev-token-123}
+      # ⚠️ DEV-ONLY token. Rotate before any shared/staging deploy. Set via shell: DEV_AUTH_TOKEN=$(openssl rand -hex 16)
+      DEV_AUTH_TOKEN: ${DEV_AUTH_TOKEN:-local-dev-only-token}
     volumes:
       - ./ml:/app/ml
     ports:
