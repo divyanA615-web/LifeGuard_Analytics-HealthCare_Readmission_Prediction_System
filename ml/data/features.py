@@ -70,7 +70,9 @@ def build_features(
             ("scaler", StandardScaler()),
         ]
     )
-    scaler.fit(x_train[NUMERIC_FEATURES])
+    # IMPORTANT: fit on the FULL 19-column matrix so inference-time scaling matches export.
+    full_columns = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+    scaler.fit(x_train[full_columns])
 
     output_dir.mkdir(parents=True, exist_ok=True)
     joblib.dump(scaler, output_dir / "scaler.pkl")
@@ -87,11 +89,13 @@ def build_features(
         "test_features": output_dir / "test_X.parquet",
     }
     for split_name, frame in [("train", train), ("val", val), ("test", test)]:
-        x = _enforce_columns(frame, NUMERIC_FEATURES)
+        x_raw = _enforce_columns(frame, NUMERIC_FEATURES)
         cats = frame[[c for c in CATEGORICAL_FEATURES if c in frame.columns]]
-        full = pd.concat([x, cats], axis=1)
-        full.to_parquet(artefact_paths[f"{split_name}_features"], index=False)
-    logger.info("Wrote feature matrices to %s", output_dir)
+        full = pd.concat([x_raw, cats], axis=1).astype(float).fillna(0.0)
+        scaled = scaler.transform(full)
+        scaled_df = pd.DataFrame(scaled, columns=full.columns, index=full.index)
+        scaled_df.to_parquet(artefact_paths[f"{split_name}_features"], index=False)
+    logger.info("Wrote SCALED feature matrices to %s", output_dir)
 
 
 def main() -> None:

@@ -125,6 +125,11 @@ frontend/tsconfig.tsbuildinfo
 logs/
 robots*.txt
 
+# Tunnel config — never commit auth tokens/config from your real machine
+config/tunnel/
+logs/tunnel-last.txt
+nul
+
 # ---------- Coverage / test output ----------
 coverage/
 .coverage

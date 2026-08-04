@@ -1,0 +1,17 @@
+**/node_modules
+**/.git
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv
+**/venv
+**/*.log
+**/*.tar.gz
+**/*.zip
+**/*.onnx
+**/*.pkl
+**/*.joblib
+**/infra/
+**/ml/
+**/frontend/dist

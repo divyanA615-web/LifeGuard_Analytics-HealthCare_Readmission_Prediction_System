@@ -1,0 +1,92 @@
+{
+  "n_features_declared": 19,
+  "n_features_expected": 19,
+  "calibration_samples": [
+    {
+      "patient_input": [
+        77.3956,
+        6.1443,
+        60.1019,
+        3.4868,
+        2.8253,
+        2.9269,
+        2.2834,
+        3.9303,
+        1.2811,
+        1.3512
+      ],
+      "prob_positive": 0.0,
+      "threshold_label": 0
+    },
+    {
+      "patient_input": [
+        63.1664,
+        10.6132,
+        24.8168,
+        4.8535,
+        26.7936,
+        2.3352,
+        0.5839,
+        2.3336,
+        0.438,
+        0.4629
+      ],
+      "prob_positive": 0.0,
+      "threshold_label": 0
+    },
+    {
+      "patient_input": [
+        22.6909,
+        9.3774,
+        30.6006,
+        4.1634,
+        21.008,
+        0.9371,
+        2.4968,
+        4.0238,
+        3.8748,
+        0.865
+      ],
+      "prob_positive": 0.0,
+      "threshold_label": 0
+    },
+    {
+      "patient_input": [
+        56.8741,
+        1.9572,
+        8.0171,
+        3.342,
+        14.1329,
+        1.6957,
+        2.295,
+        3.1736,
+        5.5358,
+        1.6776
+      ],
+      "prob_positive": 0.0,
+      "threshold_label": 0
+    },
+    {
+      "patient_input": [
+        29.3594,
+        9.2668,
+        38.9923,
+        3.9195,
+        19.9294,
+        1.2192,
+        2.4421,
+        0.8349,
+        0.2271,
+        0.2701
+      ],
+      "prob_positive": 0.0,
+      "threshold_label": 0
+    }
+  ],
+  "scaler_meta": {
+    "pipeline_structure": [
+      "SimpleImputer",
+      "StandardScaler"
+    ]
+  }
+}

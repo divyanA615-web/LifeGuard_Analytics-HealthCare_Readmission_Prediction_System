@@ -1,0 +1,49 @@
+# Build context exclusions — MUST KEEP CLEAN FOR DOCKER BUILD
+
+# Runtime artifacts / caches
+**/node_modules/
+**/dist/
+**/templates/
+**/static/
+
+# Python compilations
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.log
+**/.pytest_cache/
+**/.venv/
+**/venv/
+
+# ML artifacts (handled separately not included in build)
+**/mlruns/
+**/*.parquet
+**/*.feather
+**/*.csv
+**/*.onnx
+**/*.joblib
+**/*.pkl
+**/models/
+**/data/
+**/docs/
+**/notebooks/
+
+# Git metadata
+.git/
+.gitignore
+.github/
+
+# Terraform (we have separate CI)
+infra/
+**/.terraform/
+
+# Local environment flags/vars
+*.env
+*.env.*
+
+# Editor junk (never needed at runtime)
+.vscode/
+.idea/
+**/*.swp
+**/*.swo

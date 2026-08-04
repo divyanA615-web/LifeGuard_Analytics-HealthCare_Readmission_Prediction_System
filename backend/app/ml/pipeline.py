@@ -65,6 +65,19 @@ class MLPipeline:
                 self._feature_columns = []
         return self._feature_columns
 
+    @property
+    def scaler(self):
+        if self._scaler is None:
+            scaler_path = MODEL_DIR.parent.parent / "data" / "features" / "scaler.pkl"
+            if scaler_path.exists():
+                import joblib
+
+                self._scaler = joblib.load(scaler_path)
+            else:
+                logger.warning("No scaler found at %s – running without scaling", scaler_path)
+                self._scaler = None
+        return self._scaler
+
     def predict(self, features: Sequence[float]) -> PredictionResult:
         if not self.feature_columns:
             raise RuntimeError(
@@ -75,15 +88,18 @@ class MLPipeline:
                 f"Feature length mismatch: {len(features)} vs expected {len(self.feature_columns)}"
             )
 
+        arr = np.asarray(features, dtype=np.float32).reshape(1, -1)
+        # Note: ONNX export captures raw XGBoost serialization — do NOT scale here,
+        # scaling would distort training-inference consistency.
+
         start = time.perf_counter()
-        risk_proba = self.engine.predict_proba_positive(features)
+        risk_proba = self.engine.predict_proba_positive(arr.ravel())
         latency_ms = (time.perf_counter() - start) * 1000
 
+        top = []
         if self.shap is not None:
-            explanation = self.shap.explain(features, self.feature_columns)
+            explanation = self.shap.explain(arr.ravel(), self.feature_columns)
             top = self.shap.top_features(explanation, top_k=5)
-        else:
-            top = []
 
         if risk_proba < 0.33:
             risk_label = "LOW"
@@ -93,7 +109,7 @@ class MLPipeline:
             risk_label = "HIGH"
 
         return PredictionResult(
-            risk_proba=risk_proba,
+            risk_proba=float(risk_proba),
             risk_label=risk_label,
             explanation=top,
             latency_ms=latency_ms,

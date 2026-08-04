@@ -141,7 +141,7 @@ async def predict(
     return PredictResponse(
         request_id=request_id,
         patient_token=patient_token,
-        risk_proba=round(result.risk_proba, 4),
+        risk_proba=result.risk_proba,   # no clamp to 4dp — calibration level fidelity
         risk_label=result.risk_label,
         explanation=[
             ExplanationItem(**(e if isinstance(e, dict) else e.__dict__))
