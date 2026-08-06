@@ -1,51 +1,55 @@
-# Render deployment manifest for LifeGuard Backend
-# Requirements to run this successfully:
-# 1. Create via Render Dashboard → New Web Service → Docker Registry → ghcr.io path
-# 2. Provide DATABASE_URL from linked Render Postgres instance
-# 3. Provide DEV_AUTH_TOKEN in Render → Settings → Environment
-# 4. Health check path must be globally reachable
+# Render Blueprint — LifeGuard Readmission Backend
+# Deploy: Render Dashboard → New → Blueprint → select this repo (it reads render.yaml)
+# Spec reference: https://render.com/docs/blueprint-spec
+#
+# ⚠️ `sync: false` envVars must be filled in the Render dashboard AFTER first deploy
+#    (Render will not launch until values are provided). Never commit real values here.
 
 services:
-  # Render Web service for the FastAPI Backend
   - type: web
     name: lifeguard-backend
     runtime: docker
-    # Path to the repo-side Dockerfile (safer than image tag reference)
-    dockerfilePath: ./backend/Dockerfile
-    # Mount persistent volume holding the ML models, build artefacts, and audit data
-    volumes:
-      - name: model-artifacts
-        mountPath: /app/ml
-        type: persistent # Maintains training state across deploys
-
-    # Scale & availability settings visible in Render console
-    plan: standard # Free plan spins down on inactivity; use standard for demo stability
-    numInstances: 1
-    maxInstances: 2
-    autoDeploy: true
-
-    # HTTP health check config (matches app health route)
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    region: oregon
+    plan: starter          # free spins down; starter stays warm
     healthCheckPath: /v1/health
-    pollIntervalSeconds: 30
-    initialDelaySeconds: 15
-    timeoutSeconds: 10
-    healthyThreshold: 2
-    unhealthyThreshold: 5
-
-    # Secure environment exposes only via Render SecretStore
-    secrets:
-      - env: DATABASE_URL
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: prod
+      - key: DEPLOY_ENV
+        value: prod
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
         fromDatabase:
           name: lifeguard-db
           property: connectionString
-      - env: DEV_AUTH_TOKEN
-        # DO NOT put in render.yaml — use Render secret store in UI
-        # Render rejects plaintext secrets in YAML; this field here is for linting only
+      - key: DEV_AUTH_TOKEN
+        sync: false                      # set manually in Render dashboard
+      - key: LOCAL_KEK
+        sync: false                      # 64-char hex; generate: python -c "import secrets;print(secrets.token_hex(32))"
+      - key: MODEL_ARTIFACT_PATH
+        value: /app/ml/models/xgboost_v1
+      - key: MIGRATE_ON_START
+        value: "1"
+      - key: ENABLE_HTTPS_REDIRECT
+        value: "1"
+      - key: ENABLE_TRUSTED_HOST
+        value: "1"
+      - key: ALLOWED_HOSTS
+        value: lifeguard-backend.onrender.com
+      - key: CORS_ORIGINS
+        sync: false                      # set to your Vercel URL, e.g. https://lifeguard-frontend.vercel.app
+    disk:
+      name: model-artifacts
+      mountPath: /app/ml
+      sizeGB: 1                          # cheapest persistent disk; holds models only
 
-# Dedicated Postgres instance (minimal tier)
 databases:
   - name: lifeguard-db
     databaseName: lifeguard
-    user: lifeguard_app
+    user: lifeguard
     plan: free
-    ipRange: 0.0.0.0/0 # allow outbound routing from the web service tier
+    postgresMajorVersion: "15"

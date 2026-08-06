@@ -1,0 +1,66 @@
+# syntax=docker/dockerfile:1.6
+# ============================================================================
+# Dockerfile.render — Render-optimized backend image
+#
+# WHY THIS FILE EXISTS (and backend/Dockerfile stays untouched):
+#   * Local docker-compose builds use context=./backend with relative paths.
+#   * Render builds with context=REPO ROOT and needs root-relative paths.
+#   * Render free/starter disks mount EMPTY, so the ONNX model MUST be baked
+#     into the image here — otherwise the first request 503s.
+#
+# Render config (render.yaml):  dockerContext: .  dockerfilePath: ./Dockerfile.render
+# ============================================================================
+
+# ---------- Stage 1: dependency builder ----------
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ---------- Stage 2: lean runtime ----------
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+ENV ENVIRONMENT=prod \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python packages from the builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Backend application code
+COPY backend/app ./app
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# BAKED MODEL ARTIFACTS (Render disk mounts start empty — never rely on them for models)
+COPY ml/models/xgboost_v1 ./ml/models/xgboost_v1
+COPY ml/__init__.py ./ml/__init__.py
+COPY ml/models/inference.py ./ml/models/inference.py
+COPY ml/models/shap_explainer.py ./ml/models/shap_explainer.py
+COPY ml/data/features/feature_columns.json ./ml/data/features/feature_columns.json
+
+EXPOSE 8080
+
+HEALTHCHECK CMD python -c "import os, urllib.request, sys; port=os.environ.get('PORT','8080'); sys.exit(urllib.request.urlopen(f'http://localhost:{port}/v1/health').status != 200)"
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --log-level info"]

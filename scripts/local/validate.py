@@ -137,8 +137,10 @@ def main() -> int:
         qualified_status["passed"] = False
 
     # Summary
-    qualified_status["failed"] = sum(1 for c in checks.values() if not c["passed"])
-    qualified_status["passed"] = all(c["passed"] for c in checks.values())
+    qualified_status["failed"] = sum(1 for c in checks.values() if not (c.get('passed') or False))
+    qualified_status["passed"] = all(
+        c.get('passed', False) is True for c in checks.values()
+    )
 
     with open(OUT_PATH, "w", encoding="utf-8") as fh:
         json.dump(qualified_status, fh, indent=2)

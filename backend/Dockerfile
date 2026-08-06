@@ -40,7 +40,7 @@ RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 8080
 
-HEALTHCHECK CMD python -c "import urllib.request, sys; sys.exit(urllib.request.urlopen('http://localhost:8080/v1/health').status != 200)"
+HEALTHCHECK CMD python -c "import os, urllib.request, sys; port=os.environ.get('PORT','8080'); sys.exit(urllib.request.urlopen(f'http://localhost:{port}/v1/health').status != 200)"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--log-level", "info"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --log-level info"]
