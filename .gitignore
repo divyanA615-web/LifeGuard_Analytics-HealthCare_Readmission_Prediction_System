@@ -147,3 +147,6 @@ test-results/
 *.old
 *.orig
 package-lock.json.bak
+
+# Vendored binaries — install instead
+binaries/
