@@ -1,17 +1,20 @@
 **/node_modules
 **/.git
-**/__pycache__
-**/*.pyc
-**/*.pyo
-**/*.pyd
 **/.venv
 **/venv
 **/*.log
 **/*.tar.gz
 **/*.zip
-**/*.onnx
-**/*.pkl
-**/*.joblib
 **/infra/
-**/ml/
 **/frontend/dist
+
+# Block heavy raw + sparse training outputs but keep pipeline modules visible
+**/ml/data/raw/
+**/ml/data/processed/
+**/ml/data/splits/
+**/ml/mlruns/
+
+# Model & SHAP caches (loaded via baked image when present)
+**/ml/models/xgboost_v1/*.onnx
+**/ml/models/xgboost_v1/*.pkl
+**/ml/models/xgboost_v1/*.joblib

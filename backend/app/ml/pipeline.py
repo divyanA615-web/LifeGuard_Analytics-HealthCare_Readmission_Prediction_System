@@ -83,12 +83,16 @@ class MLPipeline:
             raise RuntimeError(
                 "Feature columns not loaded – make sure training has been run."
             )
-        if len(features) != len(self.feature_columns):
+        # Accept any length ≤ model features (pad with 0s if ends fall short)
+        if len(features) > len(self.feature_columns):
             raise ValueError(
-                f"Feature length mismatch: {len(features)} vs expected {len(self.feature_columns)}"
+                f"Too many features: got {len(features)}, model expects {len(self.feature_columns)}"
             )
+        padded = list(features)
+        while len(padded) < len(self.feature_columns):
+            padded.append(0.0)
 
-        arr = np.asarray(features, dtype=np.float32).reshape(1, -1)
+        arr = np.asarray(padded, dtype=np.float32).reshape(1, -1)
         # Note: ONNX export captures raw XGBoost serialization — do NOT scale here,
         # scaling would distort training-inference consistency.
 

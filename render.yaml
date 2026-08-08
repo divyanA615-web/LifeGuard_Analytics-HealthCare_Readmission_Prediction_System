@@ -12,7 +12,7 @@ services:
     dockerfilePath: ./Dockerfile.render
     dockerContext: .
     region: oregon
-    plan: starter          # free spins down; starter stays warm
+    plan: starter          # use standard-level persistent disk option when ready
     healthCheckPath: /v1/health
     autoDeploy: true
     envVars:
@@ -29,7 +29,7 @@ services:
       - key: DEV_AUTH_TOKEN
         sync: false                      # set manually in Render dashboard
       - key: LOCAL_KEK
-        sync: false                      # 64-char hex; generate: python -c "import secrets;print(secrets.token_hex(32))"
+        sync: false                      # 64-char hex; generate with your own pw or `openssl rand -hex 32`
       - key: MODEL_ARTIFACT_PATH
         value: /app/ml/models/xgboost_v1
       - key: MIGRATE_ON_START
@@ -42,10 +42,6 @@ services:
         value: lifeguard-backend.onrender.com
       - key: CORS_ORIGINS
         sync: false                      # set to your Vercel URL, e.g. https://lifeguard-frontend.vercel.app
-    disk:
-      name: model-artifacts
-      mountPath: /app/ml
-      sizeGB: 1                          # cheapest persistent disk; holds models only
 
 databases:
   - name: lifeguard-db
@@ -53,3 +49,4 @@ databases:
     user: lifeguard
     plan: free
     postgresMajorVersion: "15"
+

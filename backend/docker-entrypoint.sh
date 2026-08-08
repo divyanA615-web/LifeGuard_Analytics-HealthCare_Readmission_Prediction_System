@@ -22,4 +22,16 @@ echo "Starting backend with:"
 echo "  ENVIRONMENT=${ENVIRONMENT:-dev}"
 echo "  DEPLOY_ENV=${DEPLOY_ENV:-dev}"
 
+# Wait for model artifacts on Render Disk (empty on first boot)
+if [ ! -f "$MODEL_ARTIFACT_PATH/model.onnx" ]; then
+  echo "Model artifact not baked; fetching from disk mount (Render persistent whatever)"
+  mkdir -p "$MODEL_ARTIFACT_PATH"
+  # If MODEL_S3_URI provided, sync from remote; otherwise leave empty => service will
+  # mark readiness as degraded / calls return 503 until weights are available.
+  if [ -n "$MODEL_S3_URI" ]; then
+    pip install awscli >/dev/null 2>&1
+    aws s3 sync "$MODEL_S3_URI" "$MODEL_ARTIFACT_PATH" --no-progress
+  fi
+fi
+
 exec "$@"

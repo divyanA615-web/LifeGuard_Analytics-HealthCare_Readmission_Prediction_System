@@ -1,9 +1,21 @@
 {
   "version": 2,
   "name": "lifeguard-readmission-frontend",
+  "scope": "divyana615",
+  "rootDirectory": "frontend",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
   "rewrites": [
-    { "source": "/v1/(.*)", "destination": "https://lifeguard-backend.onrender.com/v1/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/v1/(.*)",
+      "destination": "https://lifeguard-backend.onrender.com/v1/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
@@ -21,10 +33,5 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
-  ],
-  "github": {
-    "enabled": true,
-    "silent": false,
-    "gitMatcher": "^(main|master)$"
-  }
+  ]
 }
