@@ -109,6 +109,8 @@ def train(
     y_test = test[TARGET_COLUMN].astype(int).values
 
     params = yaml_load(Path(params_path))
+    # Compute class imbalance ratio for XGBoost; disable Platt/Isotonic on small sets to avoid extra complexity
+    ratio = (y_train == 0).sum() / max((y_train == 1).sum(), 1)
     booster = xgb.XGBClassifier(
         n_estimators=params["n_estimators"],
         learning_rate=params["learning_rate"],
@@ -117,6 +119,8 @@ def train(
         colsample_bytree=params["colsample_bytree"],
         reg_lambda=params["reg_lambda"],
         min_child_weight=params["min_child_weight"],
+        # scale_pos_weight is required for severe class imbalance
+        scale_pos_weight=float(ratio),
         eval_metric="aucpr",
         tree_method="hist",
         n_jobs=-1,
@@ -159,7 +163,8 @@ def train(
             subsample=params["subsample"],
             colsample_bytree=params["colsample_bytree"],
             reg_lambda=params["reg_lambda"],
-            min_child_weight=params["min_child_weight"],
+            reg_alpha=params.get("reg_alpha", 0.0),
+            scale_pos_weight=float(ratio),
             eval_metric="aucpr",
             tree_method="hist",
             n_jobs=-1,
