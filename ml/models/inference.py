@@ -46,9 +46,17 @@ class InferenceEngine:
     def __init__(self, model_path: Path = DEFAULT_MODEL_DIR / "model.onnx"):
         self.session = load_session(model_path)
         self.input_name = self.session.get_inputs()[0].name
-        self.output_name = self.session.get_outputs()[0].name
+        # XGBoost ONNX exposes [label, probabilities] — we want probabilities
+        self.probabilities_name = self.session.get_outputs()[1].name
         self.expected_features = self.session.get_inputs()[0].shape[1] or None
         logger.info("ONNX model loaded")
+
+    def predict_batch_logits(self, features: Sequence[float]) -> np.ndarray:
+        """Return FULL probability pair for a 1-sample row."""
+        self.validate(features)
+        arr = np.asarray(features, dtype=np.float32).reshape(1, -1)
+        results = self.session.run([self.probabilities_name], {self.input_name: arr})
+        return np.asarray(results[0])
 
     def validate(self, features: Sequence[float]) -> None:
         arr = np.asarray(features, dtype=np.float32)
@@ -60,27 +68,21 @@ class InferenceEngine:
             )
 
     def predict(self, features: Sequence[float]) -> np.ndarray:
-        """Return the probability array for a single sample."""
+        """Return [P(negative), P(readmitted)] probabilities from ONNX engine."""
         self.validate(features)
         arr = np.asarray(features, dtype=np.float32).reshape(1, -1)
-        results = self.session.run([self.output_name], {self.input_name: arr})
-        result = np.asarray(results[0])
-        if result.ndim == 2 and result.shape[-1] == 2:
-            return result[0]
-        if result.ndim == 2 and result.shape[-1] == 1:
-            return np.array([1.0 - float(result[0, 0]), float(result[0, 0])])
-        if result.ndim == 1:
-            return np.array([1.0 - float(result[0]), float(result[0])])
+        results = self.session.run([self.probabilities_name], {self.input_name: arr})
+        result = np.asarray(results[0]).reshape(1, -1)  # shape becomes (1,2)
         return result[0]
 
     def predict_proba_positive(self, features: Sequence[float]) -> float:
-        result = self.predict(features)
-        return float(result[-1])
+        pos_probability = self.predict(features)[-1]
+        return float(pos_probability)
 
     def predict_batch(self, matrix: np.ndarray) -> np.ndarray:
         """Return positive-class probabilities for a 2D batch."""
         matrix = np.ascontiguousarray(matrix, dtype=np.float32)
-        results = self.session.run([self.output_name], {self.input_name: matrix})
+        results = self.session.run([self.probabilities_name], {self.input_name: matrix})
         result = np.asarray(results[0])
         if result.ndim == 2:
             if result.shape[-1] == 2:
