@@ -12,18 +12,18 @@ jobs:
     name: Trivy container scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build image (no push)
         run: docker build -t lifeguard-api-scan backend
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@v0.20.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: lifeguard-api-scan:latest
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
       - name: Upload results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
@@ -32,19 +32,19 @@ jobs:
     name: tfsec + checkov
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: infra
       - name: Checkov
-        uses: bridgecrewio/checkov-action@v12.0.0
+        uses: bridgecrewio/checkov-action@v12.3115.0
         with:
           directory: infra
           framework: terraform
           output_format: sarif
           output_file_path: checkov.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov.sarif
@@ -56,7 +56,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
       - run: pip install -r requirements.txt bandit
       - run: bandit -r app -ll
