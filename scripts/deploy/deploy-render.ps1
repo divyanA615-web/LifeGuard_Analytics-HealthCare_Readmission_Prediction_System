@@ -13,9 +13,22 @@ python -c "import yaml,sys; yaml.safe_load(open('render.yaml')); print('render.y
 $bad = git grep -nI "openssl rand" -- . 2>$null | Where-Object { $_ -notmatch "render.yaml|docs/" }
 if ($bad) { Write-Host "Secret-pattern leak risk:" -ForegroundColor Red; $bad; exit 1 }
 
-# 3. Generate fresh secret values for you to paste into Render dashboard
-$kek = -join ((0..63) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
-$devToken = -join ((0..31) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+# Step 3: Generate fresh production values (rotate immediately after first deploy)
+$kek = -join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+$authToken = -join ((1..32) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+
+@"
+Render Frontend Environment Variables (paste into Settings → Environment):
+────────────────────────────────────────────────────────────────────────────
+DEV_AUTH_TOKEN = $authToken
+LOCAL_KEK      = $kek
+CORS_ORIGINS   = https://<your-vercel-project>.vercel.app   (fill after Vercel deploy)
+"servicesHostname" from Render is typically: https://lifeguard-backend.onrender.com
+────────────────────────────────────────────────────────────────────────────
+These values are one-time use; rotate via the Render dashboard after deploy.
+"@ | Out-File docs/deployment/render-secrets.txt -Encoding utf8
+
+Write-Host "`nSecrets written to docs/deployment/render-secrets.txt" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "Paste these into Render → lifeguard-backend → Environment (ONE TIME, then rotate)" -ForegroundColor Yellow
