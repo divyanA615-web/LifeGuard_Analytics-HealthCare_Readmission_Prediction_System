@@ -46,8 +46,11 @@ ml/data/processed/plots/
 ml/data/processed/audit_chain*.ndjson
 !ml/data/processed/.gitkeep
 ml/data/splits/*.parquet
+ml/data/splits/*.json
 ml/data/features/*.pkl
-ml/data/features/*.json
+# Feature Columns attached models need to be checked daily — we don't  exclude
+# them when built into production-readyas TaxEditions they are mount points.
+ml/data/features/**/feature_columns.json
 
 # Trained artefacts (regenerates from training)
 ml/models/xgboost_v1/

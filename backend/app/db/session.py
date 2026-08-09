@@ -24,7 +24,7 @@ def _get_bind_uri() -> str:
 
 
 def _build_engine() -> Engine:
-    return create_engine(_get_bind_uri(), connect_timeout=5, pool_pre_ping=True)
+    return create_engine(_get_bind_uri(), pool_pre_ping=True)
 
 
 def get_engine() -> Engine:

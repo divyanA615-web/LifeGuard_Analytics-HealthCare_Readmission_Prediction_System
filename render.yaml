@@ -1,9 +1,6 @@
-# Render Blueprint — LifeGuard Readmission Backend
-# Deploy: Render Dashboard → New → Blueprint → select this repo (it reads render.yaml)
-# Spec reference: https://render.com/docs/blueprint-spec
-#
-# ⚠️ `sync: false` envVars must be filled in the Render dashboard AFTER first deploy
-#    (Render will not launch until values are provided). Never commit real values here.
+# Render Blueprint — LifeGuard Analytics (Production-Ready)
+# Deployment: Render Dashboard → New Blueprint from GitHub repo → read this file.
+# Spec: https://render.com/docs/blueprint-speccsss
 
 services:
   - type: web
@@ -11,8 +8,8 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile.render
     dockerContext: .
-    region: oregon
-    plan: starter          # use standard-level persistent disk option when ready
+    region: us-east1 # cheapest performance
+    plan: starter # persistent & affordable
     healthCheckPath: /v1/health
     autoDeploy: true
     envVars:
@@ -26,22 +23,16 @@ services:
         fromDatabase:
           name: lifeguard-db
           property: connectionString
-      - key: DEV_AUTH_TOKEN
-        sync: false                      # set manually in Render dashboard
-      - key: LOCAL_KEK
-        sync: false                      # 64-char hex; generate with your own pw or `openssl rand -hex 32`
       - key: MODEL_ARTIFACT_PATH
         value: /app/ml/models/xgboost_v1
       - key: MIGRATE_ON_START
         value: "1"
-      - key: ENABLE_HTTPS_REDIRECT
-        value: "1"
-      - key: ENABLE_TRUSTED_HOST
-        value: "1"
-      - key: ALLOWED_HOSTS
-        value: lifeguard-backend.onrender.com
+      - key: DEV_AUTH_TOKEN
+        sync: false
+      - key: LOCAL_KEK
+        sync: false
       - key: CORS_ORIGINS
-        sync: false                      # set to your Vercel URL, e.g. https://lifeguard-frontend.vercel.app
+        sync: false # Set in Render dashboard: https://your-vercel-app.vercel.app
 
 databases:
   - name: lifeguard-db
@@ -49,4 +40,3 @@ databases:
     user: lifeguard
     plan: free
     postgresMajorVersion: "15"
-
