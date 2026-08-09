@@ -13,26 +13,34 @@ from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
 
+_engine = None
+
+
+def _get_bind_uri() -> str:
+    uri = os.environ.get("DATABASE_URL")
+    if not uri:
+        raise RuntimeError("DATABASE_URL not configured")
+    return uri
+
 
 def _build_engine() -> Engine:
-    db_uri = os.environ.get("DATABASE_URL")
-    if db_uri:
-        connect_args = {"connect_timeout": 5}
-        return create_engine(db_uri, connect_args=connect_args, pool_pre_ping=True)
-    raise RuntimeError("DATABASE_URL not configured")
+    return create_engine(_get_bind_uri(), connect_timeout=5, pool_pre_ping=True)
 
 
 def get_engine() -> Engine:
-    if not hasattr(get_engine, "_engine"):
-        get_engine._engine = _build_engine()
-    return getattr(get_engine, "_engine")
+    global _engine
+    if _engine is None:
+        _engine = _build_engine()
+    return _engine
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=get_engine())
+SessionLocal = sessionmaker(autocommit=False, autoflush=False)
 
 
 @contextmanager
 def session_scope() -> Iterator:
+    engine = get_engine()
+    SessionLocal.configure(bind=engine)
     session = SessionLocal()
     try:
         yield session
