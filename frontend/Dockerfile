@@ -7,7 +7,8 @@ COPY src ./src
 RUN npm run build
 
 # Runtime stage with nginx
-FROM nginx:1.25-alpine AS runtime
+FROM nginx:1.27-alpine AS runtime
+RUN apk update && apk upgrade && apk add --no-cache curl
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh

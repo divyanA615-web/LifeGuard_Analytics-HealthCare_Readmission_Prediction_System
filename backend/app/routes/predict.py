@@ -97,8 +97,8 @@ async def predict(
             ]
         )[0]
         similar_patients = [
-            {"patient_token": "sim_encrypted", "similarity": 0.91},
-            {"patient_token": "sim_encrypted_2", "similarity": 0.88},
+            {"patient_token": "sim_encrypted", "similarity": 0.91},  # nosec B105
+            {"patient_token": "sim_encrypted_2", "similarity": 0.88},  # nosec B105
         ]
     except Exception as exc:  # pragma: no cover
         logger.debug("similarity search skipped: %s", exc)

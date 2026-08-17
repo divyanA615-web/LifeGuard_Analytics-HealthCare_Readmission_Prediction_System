@@ -29,7 +29,7 @@ from fastapi import Cookie, Header, HTTPException, status
 logger = logging.getLogger(__name__)
 
 IAP_AUDIENCE_ENV = "IAP_JWT_AUDIENCE"
-DEV_AUTH_TOKEN_ENV = "DEV_AUTH_TOKEN"
+DEV_AUTH_TOKEN_ENV = "DEV_AUTH_TOKEN"  # nosec B105
 
 
 @dataclass(slots=True)

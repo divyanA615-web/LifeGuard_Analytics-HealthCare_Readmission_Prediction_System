@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -56,7 +57,8 @@ def rotate_now(key_resource: str) -> str:
     next cold start.
     """
     client = _client()
-    token = open("/tmp/key_rotation.token", "w") if os.path.exists("/tmp") else None  # noqa: context
+    token_path = os.path.join(tempfile.gettempdir(), "key_rotation.token")
+    token = open(token_path, "w") if os.path.exists(tempfile.gettempdir()) else None
     if token:
         token.write(key_resource)
         token.close()

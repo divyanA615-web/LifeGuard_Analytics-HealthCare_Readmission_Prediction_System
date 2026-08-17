@@ -9,7 +9,7 @@
 #   * This avoids mixing PHI-trained weights into a Docker layer (safety).
 # ============================================================================
 
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -19,6 +19,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./
@@ -26,7 +27,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # ---------------------------------------------------------------------------
 
-FROM python:3.11-slim AS runtime
+FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
@@ -35,9 +36,10 @@ ENV ENVIRONMENT=prod \
     MODEL_ARTIFACT_PATH=/app/ml/models/xgboost_v1
 
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Application code & migrations (paths relative to repo ROOT because context='.')
