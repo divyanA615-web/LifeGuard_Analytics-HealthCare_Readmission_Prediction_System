@@ -44,16 +44,21 @@ jobs:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
 
-      # Use the existing artifact from earlier v0.5.2-alpha tag. Failing tests under build budget does not block; all functional risk must be fixed before artifact declaring.
+      # Build backend image locally for scanning
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: lifeguard-backend:latest
+
+      # Scan the locally built image
       - name: Scan backend image
         shell: bash
-        env:
-          SCAN_COMMAND: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --format sarif --output trivy-report.sarif lifeguard-backend:latest || exit 1
         run: |
           echo "Run Trivy via docker run because OS no longer embraces trivy CLI directly on ubuntu agents."
-          # If we already produced tagged images and pushed to GHCR successfully we fetch digest for reproducibility.
-          image_ref=$(docker image inspect lifeguard-backend:latest --format '{{index .RepoDigests 0}}' 2>/dev/null || echo lifeguard-backend:latest)
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock             --entrypoint "" aquasec/trivy:latest             image --severity HIGH,CRITICAL --format sarif --output trivy-report.sarif "${image_ref}"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock             --entrypoint "" aquasec/trivy:latest             image --severity HIGH,CRITICAL --format sarif --output trivy-report.sarif lifeguard-backend:latest
         working-directory: ${{ github.workspace }}
 
       - name: Upload SARIF results to GitHub Code Scanning
