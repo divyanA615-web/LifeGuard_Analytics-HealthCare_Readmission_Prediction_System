@@ -53,12 +53,23 @@ jobs:
           load: true
           tags: lifeguard-backend:latest
 
-      # Scan the locally built image
+      # Scan the locally built image.
+      # Note: the trivy image sets its entrypoint to `trivy`, so we must NOT
+      # clear the entrypoint with `--entrypoint ""` (that makes the `image`
+      # subcommand be treated as the executable, which fails with
+      # "executable file not found"). Keep the default entrypoint and pass the
+      # subcommand as the first argument.
       - name: Scan backend image
         shell: bash
         run: |
-          echo "Run Trivy via docker run because OS no longer embraces trivy CLI directly on ubuntu agents."
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock             --entrypoint "" aquasec/trivy:latest             image --severity HIGH,CRITICAL --format sarif --output trivy-report.sarif lifeguard-backend:latest
+          echo "Run Trivy via docker run (trivy entrypoint preserved)."
+          mkdir -p "${{ github.workspace }}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}:${{ github.workspace }}" \
+            -w "${{ github.workspace }}" \
+            aquasec/trivy:latest \
+            image --severity HIGH,CRITICAL --format sarif --output trivy-report.sarif --exit-code 1 lifeguard-backend:latest
         working-directory: ${{ github.workspace }}
 
       - name: Upload SARIF results to GitHub Code Scanning
