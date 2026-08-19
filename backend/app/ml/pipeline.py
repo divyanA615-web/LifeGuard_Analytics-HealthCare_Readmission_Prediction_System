@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 
@@ -49,7 +49,7 @@ class MLPipeline:
             try:
                 from ml.models.shap_explainer import ShapExplainer
                 self._shap = ShapExplainer(MODEL_DIR / "shap_explainer.pkl")
-            except Exception as exc:  # shap/xgboost unpickle can fail
+            except (OSError, ImportError, ValueError) as exc:  # shap/xgboost unpickle can fail
                 logger.error("SHAP explainer unavailable: %s", exc)
                 self._shap_failed = True
         return self._shap

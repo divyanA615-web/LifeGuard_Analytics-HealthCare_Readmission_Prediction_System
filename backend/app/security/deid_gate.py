@@ -20,7 +20,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from google.cloud import dlp_v2
 
@@ -85,7 +85,7 @@ def _scrub_text(text: str, token_map: TokenMap, salt: str) -> str:
         (r"[\w.+-]+@[\w-]+\.[\w.-]+", "email"),
     ]
     for pattern, kind in patterns:
-        match_iter = re.findall(pattern, text)
+        re.findall(pattern, text)
 
         def replace(m, kind=kind):
             return f"<{kind}={token_map.token_for(m.group(), salt)}>"

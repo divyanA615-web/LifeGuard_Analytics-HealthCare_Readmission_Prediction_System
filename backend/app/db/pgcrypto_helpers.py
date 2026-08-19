@@ -12,7 +12,6 @@ import os
 from sqlalchemy import func, text
 from sqlalchemy.types import TEXT
 
-
 SQL_ENABLE_PGCRYPTO = text("CREATE EXTENSION IF NOT EXISTS pgcrypto")
 
 

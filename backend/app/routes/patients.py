@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.db.session import session_scope
 from app.db.models import Prediction
+from app.db.session import session_scope
 from app.security.auth_middleware import Principal, verify_request
-from app.security.phi_encryptor import decrypt_field
 
 router = APIRouter()
 
@@ -17,7 +16,7 @@ async def history(
     patient_token: str,
     limit: int = Query(20, ge=1, le=200),
     cursor: int | None = Query(default=None, ge=1),
-    principal: Principal = Depends(verify_request),
+    principal: Principal = Depends(verify_request),  # noqa: B008
 ):
     """Return encrypted history. The frontend decides which rows to decrypt."""
     with session_scope() as session:
@@ -49,7 +48,7 @@ async def history(
 @router.get("/patients/{patient_token}/pii")
 async def pii(
     patient_token: str,
-    principal: Principal = Depends(verify_request),
+    principal: Principal = Depends(verify_request),  # noqa: B008
 ):
     """Decrypt patient PHI for an authorized clinician."""
     if not principal.is_admin() and principal.role not in ("clinician",):

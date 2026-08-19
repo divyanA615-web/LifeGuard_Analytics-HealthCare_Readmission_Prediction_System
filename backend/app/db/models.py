@@ -9,7 +9,6 @@ of ciphertext; the application decrypts them only after re-authenticating.
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
 
 from sqlalchemy import (
     JSON,
@@ -18,7 +17,6 @@ from sqlalchemy import (
     Column,
     DateTime,
     Float,
-    Integer,
     String,
     Text,
 )

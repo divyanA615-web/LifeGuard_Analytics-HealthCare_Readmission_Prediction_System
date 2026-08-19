@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
+
+from cryptography.exceptions import InvalidTag
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -12,13 +17,11 @@ os.environ.setdefault("LOCAL_KEK", "test-kek-bytes-32-chars-aaaaaaa")
 os.environ.setdefault("PHI_ENCRYPTION_KEY", "")
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
-from app.security.phi_encryptor import encrypt_field, decrypt_field  # noqa
-from app.security.deid_gate import DeIdentificationGate, TokenMap, PHILeakError  # noqa
-
 
 def setup_enc_module():
     """Reset the cached keyset handle so env-changes take effect."""
     import importlib
+
     import app.security.phi_encryptor as enc
     enc._LOCAL_KEYSET_HANDLE = None
     importlib.reload(enc)
@@ -42,14 +45,13 @@ def test_aad_protection() -> None:
     try:
         enc.decrypt_field(cipher, "mrn")
         assert False, "AAD check should have failed"
-    except Exception:
-        # Tink raises a tag-mismatch error, which is what we want
-        pass
+    except InvalidTag as exc:  # cryptography raises InvalidTag for AAD mismatch
+        logger.debug("Expected AAD check failure: %s", exc)
 
 
 def test_deidentification_removes_phi() -> None:
-    import app.security.deid_gate as deid
     setup_enc_module()
+    from app.security.deid_gate import DeIdentificationGate
     gate = DeIdentificationGate(project_id="test")
     payload = {
         "patient_name": "John Smith",
@@ -66,6 +68,7 @@ def test_deidentification_removes_phi() -> None:
 
 
 def test_token_map_round_trip() -> None:
+    from app.security.deid_gate import TokenMap
     tm = TokenMap()
     tm.token_for("John Smith", "v1")
     assert len(tm._store) == 1

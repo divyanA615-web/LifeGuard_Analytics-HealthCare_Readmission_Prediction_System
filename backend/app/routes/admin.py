@@ -8,8 +8,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import get_settings
-from app.db.session import session_scope
 from app.db.models import AuditEntry
+from app.db.session import session_scope
 from app.security.audit_logger import verify_chain
 from app.security.auth_middleware import Principal, verify_request
 
@@ -20,7 +20,7 @@ TRAINING_PATH = Path("ml/metrics/training.json")
 
 
 @router.get("/model/info")
-async def model_info(_principal: Principal = Depends(verify_request)):
+async def model_info(_principal: Principal = Depends(verify_request)):  # noqa: B008
     settings = get_settings()
     card = MODEL_CARD_PATH.read_text() if MODEL_CARD_PATH.exists() else ""
     info = {
@@ -36,7 +36,7 @@ async def model_info(_principal: Principal = Depends(verify_request)):
 
 
 @router.get("/audit")
-async def audit_chain_status(_principal: Principal = Depends(verify_request)):
+async def audit_chain_status(_principal: Principal = Depends(verify_request)):  # noqa: B008
     chain_intact = bool(verify_chain())
     with session_scope() as session:
         last = session.query(AuditEntry).order_by(AuditEntry.id.desc()).first()
@@ -48,7 +48,7 @@ async def audit_chain_status(_principal: Principal = Depends(verify_request)):
 
 
 @router.get("/admin/stats")
-async def admin_stats(principal: Principal = Depends(verify_request)):
+async def admin_stats(principal: Principal = Depends(verify_request)):  # noqa: B008
     if not principal.is_admin():
         raise HTTPException(status_code=403, detail="admin only")
     return {

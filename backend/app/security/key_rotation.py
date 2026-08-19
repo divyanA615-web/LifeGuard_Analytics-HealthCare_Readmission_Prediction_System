@@ -10,8 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime, timezone
 
 from google.api_core.exceptions import NotFound
 from google.cloud import kms_v1
@@ -23,7 +22,7 @@ def _client() -> kms_v1.KeyManagementServiceClient:
     return kms_v1.KeyManagementServiceClient()
 
 
-def get_primary_version(key_name: str) -> Optional[str]:
+def get_primary_version(key_name: str) -> str | None:
     """Return the current primary version name for a crypto key."""
     client = _client()
     key_path = key_name
@@ -34,7 +33,7 @@ def get_primary_version(key_name: str) -> Optional[str]:
     return response.primary.version
 
 
-def get_version_age_days(key_resource: str, version: Optional[str] = None) -> int:
+def get_version_age_days(key_resource: str, version: str | None = None) -> int:
     """Return how many days since the version was created."""
     client = _client()
     version = version or get_primary_version(key_resource)
@@ -58,10 +57,9 @@ def rotate_now(key_resource: str) -> str:
     """
     client = _client()
     token_path = os.path.join(tempfile.gettempdir(), "key_rotation.token")
-    token = open(token_path, "w") if os.path.exists(tempfile.gettempdir()) else None
-    if token:
-        token.write(key_resource)
-        token.close()
+    if os.path.exists(tempfile.gettempdir()):
+        with open(token_path, "w") as token:
+            token.write(key_resource)
     return client.create_crypto_key_version(
         request={"parent": key_resource, "crypto_key_version_id": ""}
     ).name

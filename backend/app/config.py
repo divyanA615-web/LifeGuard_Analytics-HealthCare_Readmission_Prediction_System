@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
-from typing import Optional
 
 from decouple import config  # type: ignore
 
@@ -21,7 +20,7 @@ class Settings:
     region: str = config("GCP_REGION", default="asia-south1")
     db_connection_secret: str = config("DB_SECRET_NAME", default="db-uri")
     kms_key_resource: str = config("PHI_ENCRYPTION_KEY", default="")
-    nvidia_api_key: Optional[str] = config("NVIDIA_API_KEY", default=None)
+    nvidia_api_key: str | None = config("NVIDIA_API_KEY", default=None)
     nvidia_embedding_model: str = config(
         "NVIDIA_EMBEDDING_MODEL",
         default="nvidia/llama-nemotron-embed-vl-1b-v2",

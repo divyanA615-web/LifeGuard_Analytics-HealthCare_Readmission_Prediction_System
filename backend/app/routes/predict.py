@@ -5,26 +5,24 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import get_settings
-from app.db.session import session_scope
 from app.db.models import Prediction
+from app.db.session import session_scope
 from app.ml.pipeline import MLPipeline
-from app.nvidia.nemotron_client import explain_risk
 from app.nvidia.embedding_client import similarity_embeddings
-from app.security.audit_logger import AuditEvent, AuditLogger
-from app.security.auth_middleware import Principal, verify_request
-from app.security.deid_gate import DeIdentificationGate
-from app.security.phi_encryptor import encrypt_field
-
+from app.nvidia.nemotron_client import explain_risk
 from app.schemas.predict import (
     ExplanationItem,
     PredictRequest,
     PredictResponse,
 )
+from app.security.audit_logger import AuditEvent, AuditLogger
+from app.security.auth_middleware import Principal, verify_request
+from app.security.phi_encryptor import encrypt_field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -37,10 +35,10 @@ def _load_pipeline() -> MLPipeline:
 @router.post("/predict", response_model=PredictResponse)
 async def predict(
     body: PredictRequest,
-    principal: Principal = Depends(verify_request),
+    principal: Principal = Depends(verify_request),  # noqa: B008
 ) -> PredictResponse:
     """Score a patient encounter and return the explanation tree."""
-    settings = get_settings()
+    get_settings()
     audit = AuditLogger()
     pipeline = _load_pipeline()
 
@@ -84,23 +82,23 @@ async def predict(
                 "admission_type_emergency": body.admission_type_emergency,
             },
         )
-    except Exception as exc:  # pragma: no cover
+    except (OSError, ImportError, ValueError) as exc:  # pragma: no cover
         logger.warning("Nemotron explanation fallback: %s", exc)
         humane_text = _template_explanation(result)
 
     similar_patients: list[dict[str, Any]] = []
     try:
-        embedding = similarity_embeddings(
+        similarity_embeddings(
             texts=[
-                f"age_band={body.age_band} admission_type="
-                f"{body.admission_type_emergency} dx={body.number_diagnoses}"
+                (f"age_band={body.age_band} admission_type="
+                f"{body.admission_type_emergency} dx={body.number_diagnoses}")
             ]
         )[0]
         similar_patients = [
             {"patient_token": "sim_encrypted", "similarity": 0.91},  # nosec B105
             {"patient_token": "sim_encrypted_2", "similarity": 0.88},  # nosec B105
         ]
-    except Exception as exc:  # pragma: no cover
+    except (OSError, ImportError, ValueError) as exc:  # pragma: no cover
         logger.debug("similarity search skipped: %s", exc)
 
     record = Prediction(
@@ -120,7 +118,6 @@ async def predict(
         session.flush()
         prediction_id = record.id
 
-    PHI_FIELDS_TO_AUDIT = ["patient_token", "model_version", "risk_label"]
     audit.emit(
         AuditEvent(
             actor=principal.email,

@@ -47,8 +47,8 @@ async def warm_up_lifespan(app: FastAPI):
     try:
         app.state.pipeline = MLPipeline()
         _ = app.state.pipeline.feature_columns
-    except Exception as exc:  # pragma: no cover
-        logger.exception("Model warm-up failed: %s", exc)
+    except Exception:  # pragma: no cover
+        logger.exception("Model warm-up failed")
         app.state.pipeline = None
     yield
 

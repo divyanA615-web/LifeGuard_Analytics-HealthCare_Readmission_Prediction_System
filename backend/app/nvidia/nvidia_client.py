@@ -14,7 +14,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -68,7 +68,7 @@ def chat_complete(
     temperature: float = 0.2,
     top_p: float = 0.95,
     thinking: bool = True,
-    extra_body: Optional[dict] = None,
+    extra_body: dict | None = None,
     timeout: int = REQUEST_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     """Send a chat-completion request to a Nemotron model."""
@@ -119,7 +119,7 @@ def embeddings(
     return response.json()
 
 
-def parse_documents(model: str, document: str, mode: str = "markdown") -> dict[str, Any]:
+def parse_documents(model: str, document: str, mode: str = "markdown", timeout: int = REQUEST_TIMEOUT_SECONDS) -> dict[str, Any]:
     """Nemoretriever Parse endpoint – PDF/document -> structured markdown."""
     if not DATASET_DAILY_USAGE.can_call():
         raise NIMRateLimitExceeded("NVIDIA daily call budget exhausted.")

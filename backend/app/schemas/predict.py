@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,7 +16,7 @@ class FeatureInput(BaseModel):
 
     name: str = Field(..., description="Feature name")
     value: float = Field(..., description="Numeric value")
-    display: Optional[str] = Field(
+    display: str | None = Field(
         default=None, description="Optional clinician-friendly label."
     )
 
@@ -24,10 +24,10 @@ class FeatureInput(BaseModel):
 class PredictRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    client_request_id: Optional[str] = Field(
+    client_request_id: str | None = Field(
         default=None, description="Idempotency token supplied by the client."
     )
-    patient_token: Optional[str] = Field(
+    patient_token: str | None = Field(
         default=None,
         description="Optional existing patient identifier (created if absent).",
     )
@@ -67,5 +67,5 @@ class PredictResponse(BaseModel):
     explanation: list[ExplanationItem]
     model_version: str
     latency_ms: float
-    humane_explanation: Optional[str] = None
+    humane_explanation: str | None = None
     similar_patients: list[dict[str, Any]] = Field(default_factory=list)

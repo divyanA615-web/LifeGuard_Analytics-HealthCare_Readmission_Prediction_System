@@ -17,11 +17,9 @@ Use::
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 import jwt
 from fastapi import Cookie, Header, HTTPException, status
@@ -45,9 +43,9 @@ class Principal:
 
 
 async def verify_request(
-    x_iap_jwt_assertion: Optional[str] = Header(default=None),
-    authorization: Optional[str] = Header(default=None),
-    lifeguard_auth_token: Optional[str] = Cookie(default=None),
+    x_iap_jwt_assertion: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+    lifeguard_auth_token: str | None = Cookie(default=None),
 ) -> Principal:
     """Extract a Principal from Cloud IAP headers or local-dev token."""
     if x_iap_jwt_assertion:

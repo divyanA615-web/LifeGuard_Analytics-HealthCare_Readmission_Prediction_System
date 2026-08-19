@@ -14,7 +14,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,9 @@ class AuditEvent:
     action: str
     target: str
     payload: dict[str, Any]
-    occurred_at: str = field(default_factory=lambda: dt.datetime.utcnow().isoformat() + "Z")
+    occurred_at: str = field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"))
     prev_hash: str = "0" * 64
-    chain_hash: Optional[str] = None
+    chain_hash: str | None = None
 
     def compute_hash(self) -> str:
         canonical = json.dumps(
@@ -92,7 +92,7 @@ class AuditLogger:
                 data=event.chain_hash.encode("utf-8"),
                 attributes={"action": event.action},
             )
-        except Exception as exc:
+        except (OSError, RuntimeError) as exc:
             logger.debug("Pub/Sub audit publish skipped: %s", exc)
 
 

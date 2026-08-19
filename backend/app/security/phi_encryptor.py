@@ -16,7 +16,7 @@ import base64
 import logging
 import os
 import threading
-from typing import Iterable, Mapping, Optional
+from collections.abc import Iterable, Mapping
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -118,7 +118,7 @@ def decrypt_record(record: Mapping[str, str], fields: Iterable[str]) -> dict:
     return out
 
 
-def encrypt_optional(value: Optional[str], context: str) -> Optional[str]:
+def encrypt_optional(value: str | None, context: str) -> str | None:
     if value is None:
         return None
     return encrypt_field(value, context)

@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.db.session import session_scope
 from app.db.models import Feedback, Prediction
+from app.db.session import session_scope
+from app.schemas.feedback import FeedbackRequest, FeedbackResponse
 from app.security.audit_logger import AuditEvent, AuditLogger
 from app.security.auth_middleware import Principal, verify_request
-
-from app.schemas.feedback import FeedbackRequest, FeedbackResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,7 +19,7 @@ logger = logging.getLogger(__name__)
 @router.post("/feedback", response_model=FeedbackResponse)
 async def feedback(
     body: FeedbackRequest,
-    principal: Principal = Depends(verify_request),
+    principal: Principal = Depends(verify_request),  # noqa: B008
 ) -> FeedbackResponse:
     with session_scope() as session:
         prediction = session.query(Prediction).filter(Prediction.id == body.prediction_id).first()

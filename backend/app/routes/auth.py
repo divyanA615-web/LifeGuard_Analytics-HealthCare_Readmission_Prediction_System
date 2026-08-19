@@ -7,6 +7,7 @@ by a real OAuth/OIDC flow (e.g. Google Identity Platform).
 import os
 
 from fastapi import APIRouter, HTTPException, Response
+
 from app.config import get_settings
 
 router = APIRouter()

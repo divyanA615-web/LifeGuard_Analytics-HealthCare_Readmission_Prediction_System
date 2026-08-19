@@ -18,7 +18,7 @@ async def health():
 
 
 @router.get("/health/readiness")
-async def readiness(principal: Principal = Depends(verify_request)):
+async def readiness(principal: Principal = Depends(verify_request)):  # noqa: B008
     pipeline = MLPipeline()
     features = pipeline.feature_columns
     return {
