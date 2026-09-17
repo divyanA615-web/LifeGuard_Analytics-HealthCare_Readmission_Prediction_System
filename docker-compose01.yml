@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lifeguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lifeguard}
+      POSTGRES_DB: ${POSTGRES_DB:-lifeguard}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lifeguard-backend:latest
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      DEPLOY_ENV: ${DEPLOY_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-lifeguard}:${POSTGRES_PASSWORD:-lifeguard}@db:5432/${POSTGRES_DB:-lifeguard}
+      LOCAL_KEK: ${LOCAL_KEK:?LOCAL_KEK must be set}
+      MODEL_ARTIFACT_PATH: /app/ml/models/xgboost_v1
+      MIGRATE_ON_START: "0"
+    volumes:
+      - ./ml:/app/ml
+    command: >
+      sh -c "alembic upgrade head"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: lifeguard-backend:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      DEPLOY_ENV: ${DEPLOY_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-lifeguard}:${POSTGRES_PASSWORD:-lifeguard}@db:5432/${POSTGRES_DB:-lifeguard}
+      LOCAL_KEK: ${LOCAL_KEK:?LOCAL_KEK must be set}
+      MODEL_ARTIFACT_PATH: /app/ml/models/xgboost_v1
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://localhost:5173}
+      ENABLE_HTTPS_REDIRECT: "0"
+      ENABLE_TRUSTED_HOST: "1"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend,frontend}
+      MIGRATE_ON_START: "0"
+      DEV_AUTH_TOKEN: ${DEV_AUTH_TOKEN:?DEV_AUTH_TOKEN must be set}
+    volumes:
+      - ./ml:/app/ml
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BACKEND: ${VITE_API_BACKEND:-http://localhost:8080}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8081}:8080"
+
+volumes:
+  postgres_data:
+
