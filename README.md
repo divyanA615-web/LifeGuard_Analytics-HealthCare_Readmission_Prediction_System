@@ -15,19 +15,19 @@
 
 Production-grade full-stack ML system that predicts 30-day hospital readmission risk
 in real time. The model itself is an XGBoost classifier, exported to ONNX for
-low-latency CPU inference in Cloud Run. The frontend is React + Vite. ML features
-that need an LLM (explanations, similar patient retrieval, dual-models, etc.) are
-served by free-tier NVIDIA NIM endpoints.
+low-latency CPU inference in a Render web service. The frontend is React + Vite
+hosted on Vercel. ML features that need an LLM (explanations, similar patient
+retrieval, dual-models, etc.) are served by free-tier NVIDIA NIM endpoints.
 
 ## Project Structure
 
 ```
 .
 ├── backend/          FastAPI service + ONNX inference + NVIDIA proxy
-├── frontend/         React + Vite + TypeScript SPA
+├── frontend/         React + Vite + TypeScript SPA (Vercel)
 ├── ml/               Data preparation, training, SHAP, DVC pipeline
-├── infra/            Terraform infrastructure (GCP, KMS, CMEK, DLP)
 ├── docs/             Architecture, security, runbook
+├── render.yaml       Render blueprint (backend + PostgreSQL)
 └── .github/          CI/CD workflows
 ```
 
@@ -71,8 +71,8 @@ ml/metrics/{training.json, evaluation.json}
 cd backend
 pip install -r requirements.txt
 
-export NVIDIA_API_KEY=nvapi-...          # optional but recommended
-export DB_SECRET=<base64-encoded-pg-uri> # set by Terraform deploy
+export NVIDIA_API_KEY=nvapi-...       # optional but recommended
+export DATABASE_URL=postgres://...    # from Render dashboard
 
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
@@ -97,23 +97,21 @@ Open <http://localhost:5173> for the patient-facing SPA.
 
 ## Security Highlights
 
-- **AES-256-GCM field encryption** via Tink, keys backed by Cloud KMS CMEK
+- **AES-256-GCM field encryption** via Tink, key from `LOCAL_KEK` env var
 - **De-identification gate** strips all PHI before any NVIDIA API call
-- **Append-only audit log** for every prediction (hash-chained in prod)
-- **TLS 1.3** enforced end-to-end (HTTPS + Cloud SQL mTLS)
-- **OPA policies** ensure every PHI column is encrypted and no public IPs leak
-- **Container + IaC scanning** via Trivy, tfsec, checkov
+- **Append-only audit log** for every prediction (hash-chained)
+- **TLS 1.3** enforced end-to-end (Vercel + Render edge TLS)
+- **Container scanning** via Trivy (HIGH/CRITICAL gate on every push)
 
 ## Cost (Dev)
 
 | Component | Cost / month |
 |-----------|--------------|
-| Cloud SQL f1-micro | $7 |
-| Cloud NAT + DNS | $0.59 |
-| Cloud Run (serverless, scale-to-0) | free tier |
-| Cloud Storage | free tier |
+| Render web service (starter) | $7 |
+| Render PostgreSQL | $0–7 |
+| Vercel (frontend) | $0 (hobby) |
 | NVIDIA free APIs | $0 |
-| **Total** | **~$8 / month** |
+| **Total** | **~$7–14 / month** |
 
 ## License
 

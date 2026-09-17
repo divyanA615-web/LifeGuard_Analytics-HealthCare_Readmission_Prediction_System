@@ -33,7 +33,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault("Permissions-Policy", "geolocation=()")
         response.headers.setdefault("Content-Security-Policy",
-                                    "default-src 'none'; script-src 'self'; img-src 'self' https:; connect-src 'self' https://*.run.app")
+                                    "default-src 'none'; script-src 'self'; img-src 'self' https:; connect-src 'self' https://*.onrender.com")
         return response
 
 
@@ -79,12 +79,12 @@ if os.environ.get("ENABLE_TRUSTED_HOST", "1") == "1":
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=os.environ.get(
-            "ALLOWED_HOSTS", "*.run.app,localhost"
+            "ALLOWED_HOSTS", "*.onrender.com,localhost,127.0.0.1,host.docker.internal"
         ).split(","),
     )
 
 
-origins = os.environ.get("CORS_ORIGINS", "https://*.run.app").split(",")
+origins = os.environ.get("CORS_ORIGINS", "https://*.vercel.app").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

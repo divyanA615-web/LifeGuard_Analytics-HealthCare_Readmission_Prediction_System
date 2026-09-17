@@ -5,27 +5,26 @@
 ```bash
 cd ml
 dvc repro                 # regenerate artefacts (data → train → evaluate)
-gcloud auth application-default login
-gsutil cp -r ml/models/xgboost_v2 gs://lifeguard-models-prod/
-# Update Cloud Run image tag, then promote via Cloud Deploy
+# Upload model artefacts to the Render persistent disk or bake them into
+# the image layer (see Dockerfile.render), then trigger a Render deploy:
+git push origin main      # autoDeploy picks up the change
 ```
 
 ## Rotate the PHI encryption key
 
-1. Cloud Console → Key Management → select the PHI key ring
-2. **Rotate** → set rotation period to 90 days
-3. Cloud Run apps will use the new key on next cold start
-4. Existing ciphertexts remain decryptable thanks to key versioning
+1. Generate a new 32-byte key: `openssl rand -base64 32`
+2. Render Dashboard → `lifeguard-backend` → Environment → update `LOCAL_KEK`
+3. Redeploy the service (Render restarts on env change)
+4. Old ciphertexts must be re-encrypted or the old KEK kept in a keyset for rollback
 5. Verify the audit log records the rotation
 
-## Restore Cloud SQL backup
+## Restore PostgreSQL backup
 
-```bash
-gcloud sql backups list --instance=dev-lifeguard-pg
-gcloud sql backups restore <BACKUP_ID> \
-    --backup-instance=dev-lifeguard-pg \
-    --target-instance=dev-lifeguard-pg-restored
-```
+1. Render Dashboard → `lifeguard-db` → Backups
+2. Choose a point-in-time snapshot → **Restore**
+3. Render provisions a replacement instance and updates `DATABASE_URL`
+   on the linked web service automatically
+4. Verify `GET /v1/health` returns 200 after restore
 
 ## Investigate a prediction complaint
 
@@ -38,10 +37,10 @@ gcloud sql backups restore <BACKUP_ID> \
    ```
 2. Verify chain integrity: `audit_chain.verify_chain()` from `audit_logger.py`
 3. If chain is broken → alert security ops immediately
-4. Pull the prediction PHI from KMS via the emergency-decryption runbook only
 
 ## Cost spike
 
-1. Open Cloud Console → Billing → Budgets & Alerts
-2. Inspect the offending SKU (Cloud SQL ↔ Cloud Run ↔ Cloud NAT)
-3. Common causes: runaway GKE node pool (disable via `cloudrun.command`), unexpected Pub/Sub fanout, debug-level logging left on
+1. Open Render Dashboard → Billing
+2. Inspect the offending service (web ↔ PostgreSQL ↔ bandwidth)
+3. Common causes: debug-level logging left on, NVIDIA free-tier limit
+   exceeded forcing fallback retry loops, oversized Docker image pushes
