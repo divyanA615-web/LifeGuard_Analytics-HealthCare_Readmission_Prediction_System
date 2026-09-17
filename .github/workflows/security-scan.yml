@@ -80,8 +80,22 @@ jobs:
             --exit-code 1 lifeguard-backend:latest
         working-directory: ${{ github.workspace }}
 
+      # SARIF upload to GitHub Code Scanning requires GitHub Advanced Security
+      # on PRIVATE repos (403 "Resource not accessible by integration" without it).
+      # Keep it best-effort: the hard gate is Trivy's --exit-code 1 above, and the
+      # report is always preserved as a workflow artifact below. If this repo is
+      # ever made public or GHAS is enabled, the upload starts working as-is.
       - name: Upload SARIF results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
         if: always()
+        continue-on-error: true
         with:
           sarif_file: trivy-report.sarif
+
+      - name: Archive Trivy report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-report
+          path: trivy-report.sarif
+          retention-days: 30
